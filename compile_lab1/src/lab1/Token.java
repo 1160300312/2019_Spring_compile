@@ -13,6 +13,6 @@ public class Token {
 	
 	@Override
 	public String toString(){
-		return value + "<" + property + "," + comment + ">";
+		return value + "\t" + "<" + property + "," + comment + ">";
 	} 
 }

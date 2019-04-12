@@ -8,14 +8,122 @@ import java.util.List;
 
 public class DFA {
 
-	public StateSnap digitDFA(StateSnap snap, List<Token> output){
+	public void digitDFA(StateSnap snap, List<Token> output){
 		String result = "";
 		Judger judger = new Judger();
 		int state = 0;
 		char[][] dfa = new char[7][7];
-		
-		return null;
+		readFromFile("DFA//digit.txt", dfa);
+		char ch = snap.input.charAt(snap.forward);
+		while(true){
+//			System.out.println(ch + " " + state);
+			List<Character> trans = this.getStateTrans(dfa, state);
+			if(judger.isDigit(ch) && trans.contains('d')){
+				result += ch;
+				state = trans.indexOf('d');
+//				System.out.println(state);
+				snap.forward++;
+				if(snap.forward<snap.input.length()){
+					ch = snap.input.charAt(snap.forward);
+				} else{
+					break;
+				}
+			} else if(ch == '.' && trans.contains('.')){
+				result += ch;
+				state = trans.indexOf('.');
+				snap.forward++;
+				if(snap.forward<snap.input.length()){
+					ch = snap.input.charAt(snap.forward);
+				} else{
+					break;
+				}
+			} else if(ch == 'e' && trans.contains('e')){
+				result += ch;
+				state = trans.indexOf('e');
+				snap.forward++;
+				if(snap.forward<snap.input.length()){
+					ch = snap.input.charAt(snap.forward);
+				} else{
+					break;
+				}
+			} else if((ch == '+' || ch == '-') && trans.contains('a')){
+				result += ch;
+				state = trans.indexOf('a');
+				snap.forward++;
+				if(snap.forward<snap.input.length()){
+					ch = snap.input.charAt(snap.forward);
+				} else{
+					break;
+				}
+			} else{
+				break;
+			}
+		}
+		if(state!=1 && state!=3 && state!=6){
+			snap.current = snap.forward;
+//			System.out.println("error");
+			//TODO 错误处理
+		} else if (state == 1){
+			output.add(new Token(result,"CONST_INT",result));
+			snap.current = snap.forward;
+		} else if (state == 3 || state == 6){
+			output.add(new Token(result,"CONST_FLOAT",result));
+			snap.current = snap.forward;
+		}
 	}
+	
+	public void commentDFA(StateSnap snap, List<Token> output){
+		String result = "";
+		Judger judger = new Judger();
+		int state = 0;
+		char[][] dfa = new char[5][5];
+		readFromFile("DFA//comment.txt", dfa);
+		char ch = snap.input.charAt(snap.forward);
+		while(true){
+			List<Character> trans = this.getStateTrans(dfa, state);
+//			System.out.println(ch + " " + state);
+			if(ch == '/' && trans.contains('/')){
+				result += ch;
+				state = trans.indexOf('/');
+				snap.forward++;
+				if(snap.forward<snap.input.length()){
+					ch = snap.input.charAt(snap.forward);
+				} else{
+					break;
+				}
+			} else if(ch == '*' && trans.contains('*')){
+				result += ch;
+				state = trans.indexOf('*');
+				snap.forward++;
+				if(snap.forward<snap.input.length()){
+					ch = snap.input.charAt(snap.forward);
+				} else{
+					break;
+				}
+			} else if(judger.judgeForComment(ch) && trans.contains('a')){
+				result += ch;
+				state = trans.indexOf('a');
+				snap.forward++;
+				if(snap.forward<snap.input.length()){
+					ch = snap.input.charAt(snap.forward);
+				} else{
+					break;
+				}
+			} else{
+				break;
+			}
+		}
+		
+		if(state != 4){
+			snap.current = snap.forward;
+//			System.out.println("error");
+		} else{
+			output.add(new Token(result,"COMMENT","_"));
+			snap.current = snap.forward;
+			
+		}
+	}
+	
 	
 	public void identifierDFA(StateSnap snap, List<Token> output){
 		String result = "";
@@ -27,13 +135,19 @@ public class DFA {
 		while(judger.isChar(ch) || judger.isDigit(ch)){
 //			System.out.println(state);
 			List<Character> trans = this.getStateTrans(dfa, state);
+			int flag = 0;
 			if(trans.contains('l')){
 				result += ch;
-				state = this.getStateTrans(dfa, state).indexOf('l');
+				state = trans.indexOf('l');
+				flag = 1;
 			}
 			if(trans.contains('a')){
 				result += ch;
-				state = this.getStateTrans(dfa, state).indexOf('a');
+				state = trans.indexOf('a');
+				flag = 1;
+			}
+			if(flag == 0){
+				break;
 			}
 			snap.forward++;
 			if(snap.forward<snap.input.length()){
@@ -42,8 +156,9 @@ public class DFA {
 				break;
 			}
 		}
-		if(state!=2){
-			System.out.println("error");
+		if(state!=1){
+			snap.current = snap.forward;
+//			System.out.println("error");
 			//TODO 错误处理
 		}
 		else{
@@ -52,6 +167,7 @@ public class DFA {
 				snap.current = snap.forward;
 			} else{
 				output.add(new Token(result,"IDN",result));
+				snap.current = snap.forward;
 			}
 		}
 	}
@@ -87,11 +203,13 @@ public class DFA {
 		DFA dfa = new DFA();
 		List<Token> result = new ArrayList<Token>();
 		StateSnap a = new StateSnap();
-		a.input = "2";
+		a.input = "abbbb";
 		a.current = 0;
 		a.forward = 0;
+		System.out.println(a.current);
 		dfa.identifierDFA(a, result);
 		System.out.println(result);
 	}
+	
 	
 }
