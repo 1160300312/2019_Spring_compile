@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ClassDiagram>
+    <CommunicationClass name="lab1.MyController" x="265" y="106">
+        <Communication destinationClassName="lab1.Judger"/>
+        <Communication destinationClassName="lab1.DFA"/>
+    </CommunicationClass>
+    <CommunicationClass name="lab1.Judger" x="283" y="277"/>
+    <CommunicationClass name="lab1.Lex" x="139" y="104"/>
+    <CommunicationClass name="lab1.DFA" x="672" y="160">
+        <Communication destinationClassName="lab1.Judger"/>
+    </CommunicationClass>
+    <CommunicationClass name="lab1.StateSnap" x="138" y="196"/>
+    <CommunicationClass name="lab1.Token" x="139" y="286"/>
+</ClassDiagram>
