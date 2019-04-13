@@ -65,7 +65,7 @@ public class Judger {
 		return null;
 	}
 	
-	public void operationJudge(StateSnap snap, List<Token> result){
+	public int operationJudge(StateSnap snap, List<Token> result){
 		String operation2 = null;
 		if((snap.current+1)<snap.input.length()){
 			operation2 = snap.input.charAt(snap.current) + "" + snap.input.charAt(snap.current+1);
@@ -78,7 +78,7 @@ public class Judger {
 				result.add(new Token(operation2,OperatorName[i],"_"));
 				snap.current += 2;
 				snap.forward += 2;
-				return;
+				return 1;
 			}
 		}
 		for(int i=0;i<Operator.length;i++){
@@ -86,8 +86,9 @@ public class Judger {
 				result.add(new Token(operation1,OperatorName[i],"_"));
 				snap.current ++;
 				snap.forward ++;
-				return;
+				return 1;
 			}
 		}
+		return 0;
 	}
 }

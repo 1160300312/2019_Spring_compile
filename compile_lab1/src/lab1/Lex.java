@@ -31,34 +31,47 @@ public class Lex {
 		List<Token> result = new ArrayList<Token>();
 		while(buffer.current!=buffer.input.length()){
 			char cur = buffer.input.charAt(buffer.current);
+			int flag = 0;
 			if(cur==' '||cur=='\t'){
 				buffer.current++;
 				buffer.forward++;
+				flag = 1;
 				continue;
 			}
 			if(judger.isChar(cur)){
 				dfa.identifierDFA(buffer, result);
+				flag = 1;
+				continue;
 			} 
 			if(judger.isDigit(cur)){
 				dfa.digitDFA(buffer, result);
+				flag = 1;
+				continue;
 			}
 			if(judger.isBoundary(cur)){
 				result.add(new Token(""+buffer.input.charAt(buffer.current),
 					judger.getBoundaryName(cur), "_"));
 				buffer.current++;
 				buffer.forward++;
+				flag = 1;
+				continue;
 			}
 			if(buffer.current<buffer.input.length()-1){
 //				System.out.println(cur);
 				if(cur == '/' && buffer.input.charAt(buffer.current+1) == '*'){
 					dfa.commentDFA(buffer, result);
+					flag = 1;
 					continue;
 				}
 			}
 			if(buffer.current!=buffer.input.length()){
-				judger.operationJudge(buffer, result);
+				flag = judger.operationJudge(buffer, result);
 			}
-			
+			if(flag == 0){
+				buffer.current++;
+				buffer.forward++;
+				break;
+			}
 		}
 		for(int i=0;i<result.size();i++){
 			System.out.println(result.get(i));
