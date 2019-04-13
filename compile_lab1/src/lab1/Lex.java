@@ -92,7 +92,7 @@ public class Lex extends Application{
 		try {
 			Parent root = FXMLLoader.load(getClass()
 			        .getResource("/lab1/GUI.fxml"));
-			s.setTitle("test");
+			s.setTitle("compile");
 			s.setScene(new Scene(root));
 			s.show();
 		} catch (IOException e) {

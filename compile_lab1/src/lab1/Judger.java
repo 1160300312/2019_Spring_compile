@@ -3,7 +3,7 @@ package lab1;
 import java.util.List;
 
 public class Judger {
-	public final String[] Key_Word = {"if","else","for","do","while","return",
+	public final String[] Key_Word = {"struct", "if","else","for","do","while","return",
 			"int","float","char","double","boolean","void","true","false","include","string"};
 	public final String[] Operator = {"+", "-", "*", "/", "<", "<=", ">", ">=", "==",
 		    "!=","&&", "||", "%", "!","++","--"};

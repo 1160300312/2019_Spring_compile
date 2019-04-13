@@ -1,9 +1,19 @@
+struct stu{
+	char[5] name;
+	int age;
+	float grade;
+} student;
+
 int[10] a;
 float _a = 3.1514;
 float _b_s = 3.15e+6;
 float c = 3.15e
+boolean d = true;
+
 if(_a == 0){
 	_a++;  ^^^
+} else {
+	_a--;
 }
 
 for(int i=0;i<10;i++){

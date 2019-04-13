@@ -24,6 +24,7 @@ public class MyController implements Initializable{
 	public TextArea code;
 	public TextArea token;
 	public AnchorPane root;
+	public TextArea error;
 	
 	
 
@@ -36,6 +37,7 @@ public class MyController implements Initializable{
 
 	public void browseFile(ActionEvent e){
 		Stage stage = (Stage) root.getScene().getWindow();
+		stage.setTitle("compile");
 		FileChooser fileChooser=new FileChooser();
 		File file1 = fileChooser.showOpenDialog(stage);
 		String path = file1.getPath();
@@ -48,12 +50,14 @@ public class MyController implements Initializable{
 			BufferedReader br = new BufferedReader(file);
 			String str;
 			while((str = br.readLine())!=null){
-				input += str;
+				input = input + str + "\n";
 				code = code + str + "\n";
 			}
 		} catch (IOException ex) {
 			ex.printStackTrace();
 		}
+		
+		int line = 1; 
 		StateSnap buffer = new StateSnap();
 		Judger judger = new Judger();
 		DFA dfa = new DFA();
@@ -62,22 +66,26 @@ public class MyController implements Initializable{
 		buffer.current = 0;
 		buffer.forward = 0;
 		List<Token> result = new ArrayList<Token>();
+		List<String> error_list = new ArrayList<String>();
 		while(buffer.current!=buffer.input.length()){
 			char cur = buffer.input.charAt(buffer.current);
 			int flag = 0;
-			if(cur==' '||cur=='\t'){
+			if(cur==' '||cur=='\t'||cur=='\n'){
+				if(cur == '\n'){
+					line ++;
+				}
 				buffer.current++;
 				buffer.forward++;
 				flag = 1;
 				continue;
 			}
 			if(judger.isChar(cur)){
-				dfa.identifierDFA(buffer, result);
+				dfa.identifierDFA(buffer, result, line, error_list);
 				flag = 1;
 				continue;
 			} 
 			if(judger.isDigit(cur)){
-				dfa.digitDFA(buffer, result);
+				dfa.digitDFA(buffer, result, line, error_list);
 				flag = 1;
 				continue;
 			}
@@ -92,18 +100,22 @@ public class MyController implements Initializable{
 			if(buffer.current<buffer.input.length()-1){
 //				System.out.println(cur);
 				if(cur == '/' && buffer.input.charAt(buffer.current+1) == '*'){
-					dfa.commentDFA(buffer, result);
+					dfa.commentDFA(buffer, result, line, error_list);
 					flag = 1;
 					continue;
 				}
 			}
 			if(buffer.current!=buffer.input.length()){
 				flag = judger.operationJudge(buffer, result);
+				if(flag == 1){
+					continue;
+				}
 			}
 			if(flag == 0){
+				error_list.add("Unrecognized symbol at line " + line);
 				buffer.current++;
 				buffer.forward++;
-				break;
+				continue;
 			}
 		}
 		this.code.setText(code);
@@ -112,6 +124,11 @@ public class MyController implements Initializable{
 			output += result.get(i) + "\n";
 		}
 		this.token.setText(output);
+		String error_output = "";
+		for(int i=0;i<error_list.size();i++){
+			error_output += error_list.get(i) + "\n";
+		}
+		this.error.setText(error_output);
 		
 	}
 	

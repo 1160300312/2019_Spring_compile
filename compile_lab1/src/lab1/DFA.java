@@ -8,7 +8,7 @@ import java.util.List;
 
 public class DFA {
 
-	public void digitDFA(StateSnap snap, List<Token> output){
+	public void digitDFA(StateSnap snap, List<Token> output, int line, List<String> errors){
 		String result = "";
 		Judger judger = new Judger();
 		int state = 0;
@@ -61,6 +61,8 @@ public class DFA {
 		}
 		if(state!=1 && state!=3 && state!=6){
 			snap.current = snap.forward;
+			errors.add("An error happened during identifying digit at"
+					+ " line " + line);
 //			System.out.println("error");
 			//TODO 错误处理
 		} else if (state == 1){
@@ -72,7 +74,7 @@ public class DFA {
 		}
 	}
 	
-	public void commentDFA(StateSnap snap, List<Token> output){
+	public void commentDFA(StateSnap snap, List<Token> output, int line, List<String> errors){
 		String result = "";
 		Judger judger = new Judger();
 		int state = 0;
@@ -116,6 +118,7 @@ public class DFA {
 		
 		if(state != 4){
 			snap.current = snap.forward;
+			errors.add("An error happened during handling comments at line "+line);
 //			System.out.println("error");
 		} else{
 			output.add(new Token(result,"COMMENT","_"));
@@ -125,7 +128,7 @@ public class DFA {
 	}
 	
 	
-	public void identifierDFA(StateSnap snap, List<Token> output){
+	public void identifierDFA(StateSnap snap, List<Token> output, int line, List<String> errors){
 		String result = "";
 		Judger judger = new Judger();
 		int state = 0;
@@ -158,6 +161,8 @@ public class DFA {
 		}
 		if(state!=1){
 			snap.current = snap.forward;
+			errors.add("An error happened during identifying identification at"
+					+ " line " + line);
 //			System.out.println("error");
 			//TODO 错误处理
 		}
@@ -165,7 +170,10 @@ public class DFA {
 			if(judger.isKeyWord(result)){
 				output.add(new Token(result,result.toUpperCase(),"_"));
 				snap.current = snap.forward;
-			} else{
+			} else if(result.equals("true") || result.equals("false")){
+				output.add(new Token(result,result.toUpperCase(),"_"));
+				
+			}else{
 				output.add(new Token(result,"IDN",result));
 				snap.current = snap.forward;
 			}
@@ -199,17 +207,6 @@ public class DFA {
 		return result;
 	}
 	
-	public static void main(String args[]){
-		DFA dfa = new DFA();
-		List<Token> result = new ArrayList<Token>();
-		StateSnap a = new StateSnap();
-		a.input = "abbbb";
-		a.current = 0;
-		a.forward = 0;
-		System.out.println(a.current);
-		dfa.identifierDFA(a, result);
-		System.out.println(result);
-	}
 	
 	
 }
