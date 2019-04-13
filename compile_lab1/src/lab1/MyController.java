@@ -1,34 +1,58 @@
 package lab1;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ResourceBundle;
 
-import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
+import javafx.event.ActionEvent;
+import javafx.fxml.Initializable;
+import javafx.scene.control.Button;
+import javafx.scene.control.TextArea;
+import javafx.scene.layout.AnchorPane;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
-public class Lex extends Application{
-	public static void main(String args[]){
-		 launch(args);
+public class MyController implements Initializable{
 
+	public Button browse;
+	public TextArea code;
+	public TextArea token;
+	public AnchorPane root;
+	
+	
 
-		/*String filepath = "input.txt";
+	
+	@Override
+	public void initialize(URL location, ResourceBundle resources) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void browseFile(ActionEvent e){
+		Stage stage = (Stage) root.getScene().getWindow();
+		FileChooser fileChooser=new FileChooser();
+		File file1 = fileChooser.showOpenDialog(stage);
+		String path = file1.getPath();
+		
 		FileReader file;
 		String input = "";
+		String code = "";
 		try {
-			file = new FileReader(filepath);
+			file = new FileReader(path);
 			BufferedReader br = new BufferedReader(file);
 			String str;
 			while((str = br.readLine())!=null){
 				input += str;
+				code = code + str + "\n";
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (IOException ex) {
+			ex.printStackTrace();
 		}
 		StateSnap buffer = new StateSnap();
 		Judger judger = new Judger();
@@ -82,23 +106,13 @@ public class Lex extends Application{
 				break;
 			}
 		}
+		this.code.setText(code);
+		String output = "";
 		for(int i=0;i<result.size();i++){
-			System.out.println(result.get(i));
-		}*/
+			output += result.get(i) + "\n";
+		}
+		this.token.setText(output);
+		
 	}
 	
-	@Override
-	public void start(Stage s){
-		try {
-			Parent root = FXMLLoader.load(getClass()
-			        .getResource("/lab1/GUI.fxml"));
-			s.setTitle("test");
-			s.setScene(new Scene(root));
-			s.show();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
 }
