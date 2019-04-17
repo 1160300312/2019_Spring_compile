@@ -16,13 +16,23 @@ public class Parser {
 	List<Set<Item>> item_set_list = new ArrayList<Set<Item>>();
 	
 	
+	//////////////
 	public Set<Item> getClosure(Item item){
 		if(item.after_point.size() == 0){
 			return null;
 		}
 		Set<Item> result = new HashSet<Item>();
-		if(this.non_terminal_set.contains(item.after_point.get(0))){
-			
+		if(this.isNonTerminal(item.after_point.get(0))){
+			List<Production> plist = this.getProduction(item.after_point.get(0));
+			List<String> search = this.getStringFirst(item.after_point, item.search_character);
+			for(int i=0;i<plist.size();i++){
+				Item it = new Item();
+				it.left = item.after_point.get(0);
+				it.before_point = new ArrayList<String>();
+				it.after_point = plist.get(i).right;
+				it.search_character = search;
+				result.add(it);
+			}
 		}
 		return null;
 	}
@@ -33,10 +43,11 @@ public class Parser {
 	}
 	
 	public List<String> getFirst(String s){
-		if(this.isTerminal(s)){
-			return null;
-		}
 		Set<String> result = new HashSet<String>();
+		if(this.isTerminal(s)){
+			result.add(s);
+			return new ArrayList<String>();
+		}
 		for(int i=0;i<this.production_list.size();i++){
 			if(this.production_list.get(i).left.equals(s)){
 				Production p = this.production_list.get(i);
@@ -162,6 +173,37 @@ public class Parser {
 			this.production_list.add(p);
 		}
 	}
+	
+	public List<Production> getProduction(String head){
+		List<Production> plist = new ArrayList<Production>();
+		for(int i=0;i<this.production_list.size();i++){
+			if(this.production_list.get(i).left.equals(head)){
+				plist.add(this.production_list.get(i));
+			}
+		}
+		return plist;
+	}
+	
+	public List<String> getStringFirst(List<String> input1, List<String> input2){
+		int i = 1;
+		List<String> result = new ArrayList<String>();
+		int flag = 0;
+		while(i<input1.size()){
+			List<String> first = this.getFirst(input1.get(i));
+			if(first.contains("EPSILON")){
+				result.addAll(first);
+				i++;
+			} else{
+				flag = 1;
+				break;
+			}
+		}
+		if(flag == 0){
+			result.addAll(input2);
+		}
+		return result;
+	}
+	
 	public static void main(String args[]){
 		Parser parser = new Parser();
 		parser.readFromFile("input.txt");
