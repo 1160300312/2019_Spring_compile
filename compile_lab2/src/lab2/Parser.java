@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +17,8 @@ public class Parser {
 	Set<String> terminal_set = new HashSet<String>();
 	Set<String> non_terminal_set = new HashSet<String>();
 	List<ItemSet> item_set_list = new ArrayList<ItemSet>();
+	AnalysisTable table;
+	int stateNum;
 	
 	
 	//////////////
@@ -156,6 +159,7 @@ public class Parser {
 		for(int i=production_index;i<lines.size();i++){
 //			System.out.println(lines.get(i));
 			Production p = new Production();
+			p.num = i - production_index;
 			String[] words = lines.get(i).split("->");
 			p.left = words[0];
 			p.right = new ArrayList<String>();
@@ -307,6 +311,41 @@ public class Parser {
 			if(loop_flag == 0){
 				break;
 			}
+			this.stateNum = count;
+		}
+	}
+	
+	public void fillTable(){
+		table = new AnalysisTable(new ArrayList<String>(this.terminal_set),new ArrayList<String>(this.non_terminal_set),stateNum);
+		for(int i=0;i<this.item_set_list.size();i++){
+			ItemSet current = this.item_set_list.get(i);
+			System.out.println(current);
+			Iterator<Item> itr1 = current.itemSet.iterator();
+			while(itr1.hasNext()){
+				
+				Item item = itr1.next();
+				System.out.println(item);
+				if(item.after_point.size() == 0 && (!item.left.equals("S1"))){
+					for(int j=0;j<item.search_character.size();i++){
+						table.action_table[current.num][table.terminals.indexOf(item.search_character.get(j))] = item.left + "->" + item.before_point;
+					}
+				}
+				if(item.after_point.size() == 0 && item.left.equals("S1")){
+					for(int j=0;j<item.search_character.size();i++){
+						table.action_table[current.num][table.terminals.indexOf(item.search_character.get(j))] = "acc";
+					}
+				}
+				if(item.after_point.size()>0 && this.isTerminal(item.after_point.get(0)) && current.go.containsKey(item.after_point.get(0))){
+					table.action_table[current.num][table.terminals.indexOf(item.after_point.get(0))] = "S" + current.go.get(item.after_point.get(0));
+				}
+			}
+			for (Map.Entry<String, Integer> entry : current.go.entrySet()) { 
+				
+				if(this.isNonTerminal(entry.getKey())){
+					table.goto_table[current.num][table.nonterminals.indexOf(entry.getKey())] = entry.getValue() + "";
+				}
+			}
+			
 		}
 	}
 	
@@ -315,6 +354,8 @@ public class Parser {
 		parser.readFromFile("input.txt");
 		
 		parser.getItemSet();
+		//parser.fillTable();
+		//System.out.println(parser.table);
 		for(int i=0;i<parser.item_set_list.size();i++){
 			System.out.print(parser.item_set_list.get(i));
 		}

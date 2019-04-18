@@ -5,6 +5,7 @@ import java.util.List;
 public class Production {
 	String left;
 	List<String> right;
+	int num;
 	
 	@Override
 	public String toString(){
