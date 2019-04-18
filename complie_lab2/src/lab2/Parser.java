@@ -4,8 +4,10 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class Parser {
@@ -13,40 +15,54 @@ public class Parser {
 	List<Production> production_list = new ArrayList<Production>();
 	Set<String> terminal_set = new HashSet<String>();
 	Set<String> non_terminal_set = new HashSet<String>();
-	List<Set<Item>> item_set_list = new ArrayList<Set<Item>>();
+	List<ItemSet> item_set_list = new ArrayList<ItemSet>();
 	
 	
 	//////////////
 	public Set<Item> getClosure(Item item){
-		if(item.after_point.size() == 0){
-			return null;
-		}
 		Set<Item> result = new HashSet<Item>();
-		if(this.isNonTerminal(item.after_point.get(0))){
-			List<Production> plist = this.getProduction(item.after_point.get(0));
-			List<String> search = this.getStringFirst(item.after_point, item.search_character);
-			for(int i=0;i<plist.size();i++){
-				Item it = new Item();
-				it.left = item.after_point.get(0);
-				it.before_point = new ArrayList<String>();
-				it.after_point = plist.get(i).right;
-				it.search_character = search;
-				result.add(it);
+		result.add(item);
+		int size = 1;
+		while(true){
+			result = this.countClosure(result);
+			if(size == result.size()){
+				break;
+			} else{
+				size = result.size();
 			}
 		}
-		return null;
+		return result;
 	}
 	
-	public List<String> getListFirst(List<String> word){
-		List<String> result = new ArrayList<String>();
-		return null;
+	public Set<Item> countClosure(Set<Item> item){
+		List<Item> it_list = new ArrayList<Item>(item);
+		
+		for(int j=0;j<it_list.size();j++){
+			if(it_list.get(j).after_point.size()==0){
+				continue;
+			}
+			if(this.isNonTerminal(it_list.get(j).after_point.get(0))){
+				List<Production> plist = this.getProduction(it_list.get(j).after_point.get(0));
+				List<String> search = this.getStringFirst(it_list.get(j).after_point, it_list.get(j).search_character);
+				for(int i=0;i<plist.size();i++){
+					Item it = new Item();
+					it.left = it_list.get(j).after_point.get(0);
+					it.before_point = new ArrayList<String>();
+					it.after_point = plist.get(i).right;
+					it.search_character = search;
+					item.add(it);
+				}
+			}
+		}
+		return item;
 	}
+
 	
 	public List<String> getFirst(String s){
 		Set<String> result = new HashSet<String>();
 		if(this.isTerminal(s)){
 			result.add(s);
-			return new ArrayList<String>();
+			return new ArrayList<String>(result);
 		}
 		for(int i=0;i<this.production_list.size();i++){
 			if(this.production_list.get(i).left.equals(s)){
@@ -138,7 +154,7 @@ public class Parser {
 			this.non_terminal_set.add(lines.get(i).split("->")[0]);
 		}
 		for(int i=production_index;i<lines.size();i++){
-			System.out.println(lines.get(i));
+//			System.out.println(lines.get(i));
 			Production p = new Production();
 			String[] words = lines.get(i).split("->");
 			p.left = words[0];
@@ -191,9 +207,14 @@ public class Parser {
 		while(i<input1.size()){
 			List<String> first = this.getFirst(input1.get(i));
 			if(first.contains("EPSILON")){
-				result.addAll(first);
+				for(int j=0;j<first.size();j++){
+					if(!first.get(j).equals("EPSILON")){
+						result.add(first.get(j));
+					}
+				}
 				i++;
 			} else{
+				result.addAll(first);
 				flag = 1;
 				break;
 			}
@@ -204,11 +225,142 @@ public class Parser {
 		return result;
 	}
 	
+	public void getItemSet(){
+		Item start = new Item();
+		start.left = "S1";
+		start.before_point = new ArrayList<String>();
+		start.after_point = new ArrayList<String>();
+		start.search_character = new ArrayList<String>();
+		start.after_point.add("S");
+		start.search_character.add("#");
+		Set<Item> start_set = this.getClosure(start);
+		ItemSet start_itemset = new ItemSet();
+		start_itemset.num = 0;
+		start_itemset.itemSet = start_set;
+		this.item_set_list.add(start_itemset);
+//		System.out.println(start_itemset);
+		
+		int count = 1;
+		while(true){
+			int loop_flag = 0;
+			ItemSet set = new ItemSet();
+			set.num = count;
+			for(int i=0;i<count;i++){
+				ItemSet current = this.item_set_list.get(i);
+				List<Item> itlist = new ArrayList<Item>(current.itemSet);
+				for(int j=0;j<itlist.size();j++){
+					if(itlist.get(j).flag == 0){
+						
+						int repeat_flag = 0;
+						Item current_item = itlist.get(j);
+						current_item.flag = 1;
+						if(current_item.after_point.size() == 0){
+							continue;
+						} else{
+							Item new_item = new Item();
+							String search_character = current_item.after_point.get(0);
+							if(search_character.equals("EPSILON")){
+								continue;
+							}
+							new_item.left = current_item.left;
+							List<String> before = new ArrayList<String>();
+							List<String> after = new ArrayList<String>();
+							for(int k=0;k<current_item.before_point.size();k++){
+								before.add(current_item.before_point.get(k));
+							}
+							before.add(current_item.after_point.get(0));
+							for(int k=1;k<current_item.after_point.size();k++){
+								after.add(current_item.after_point.get(k));
+							}
+							new_item.before_point = before;
+							new_item.after_point = after;
+							new_item.search_character = current_item.search_character;
+							int repeat_num = 0;
+							for(int m=0;m<count;m++){
+								List<Item> itlist1 = new ArrayList<Item>(this.item_set_list.get(m).itemSet);
+								for(int n=0;n<itlist1.size();n++){
+									if(new_item.equals(itlist1.get(n))){
+										repeat_flag = 1;
+										repeat_num = this.item_set_list.get(m).num;
+									}
+								}
+							}
+							if(repeat_flag == 1){
+								current.go.put(search_character, repeat_num);
+								continue;
+							} else{
+								set.itemSet = this.getClosure(new_item);
+								set.num = count;
+								this.item_set_list.add(set);
+								current.go.put(search_character, count);
+								count ++;
+								loop_flag = 1;
+								break;
+							}
+						}
+					}
+				}
+				if(loop_flag == 1){
+					break;
+				}
+			}
+			if(loop_flag == 0){
+				break;
+			}
+		}
+	}
+	
 	public static void main(String args[]){
 		Parser parser = new Parser();
 		parser.readFromFile("input.txt");
-		System.out.println(parser.production_list);
-		System.out.println(parser.getFirst("C"));
-	
+		
+		parser.getItemSet();
+		for(int i=0;i<parser.item_set_list.size();i++){
+			System.out.print(parser.item_set_list.get(i));
+		}
+		
+		/*Item it = new Item();
+		it.left = "A";
+		it.before_point = new ArrayList<String>();
+		it.after_point = new ArrayList<String>();
+		it.before_point.add("B");
+		it.after_point.add("A");
+		it.search_character = new ArrayList<String>();
+		it.search_character.add("#");
+		Set<Item> it_set = new HashSet<Item>();
+		it_set.add(it);
+		System.out.println(parser.getClosure(it));
+		
+		/*List<String> l1 = new ArrayList<String>();
+		l1.add("L");
+		l1.add("=");
+		l1.add("R");
+		List<String> l2 = new ArrayList<String>();
+		l2.add("#");
+		System.out.println(parser.getStringFirst(l1, l2));
+		System.out.println(parser.getFirst("="));*/
+		
+		/*Item it1 = new Item();
+		it1.left = "S";
+		it1.before_point = new ArrayList<String>();
+		it1.before_point.add("");
+		it1.after_point = new ArrayList<String>();
+		it1.after_point.add("CC");
+		it1.search_character = new ArrayList<String>();
+		it1.search_character.add("#");
+		Item it2 = new Item();
+		it2.left = "S";
+		it2.before_point = new ArrayList<String>();
+		it2.before_point.add("");
+		it2.after_point = new ArrayList<String>();
+		it2.after_point.add("CC");
+		it2.search_character = new ArrayList<String>();
+		it2.search_character.add("#");
+		System.out.println(it1.equals(it2));
+		Set<Item> test = new HashSet<Item>();
+		test.add(it1);
+		test.add(it2);
+		System.out.println(test);*/
+		
 	}
 }
