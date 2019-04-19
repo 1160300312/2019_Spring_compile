@@ -1,0 +1,109 @@
+Terminals:
+ε
+(
+)
+{
+record
+}
+id
+prco
+,
+int
+float
+char
+[
+]
+if
+else
+=
+do
+while
+call
+id
+return
+break
+num
+||
+&&
+==
+!=
+<
+<=
+>
+>=
++
+-
+*
+/
+!
+;
+num
+real
+true
+false
+Productions:
+Start->P
+P->D P
+P->S P
+P->ε
+D->prco X id ( M ) { P }
+D->record id { P }
+Block->{ Delcs Stmts }
+Delcs->Delcs Delc
+Delcs->ε
+Delc->T id A ;
+Stmts->Stmts S
+Stmts->ε
+A->= Factor A
+A->, id A
+A->ε
+M->M , X id
+M->X id
+T->X C
+X->int
+X->float
+X->char
+C->[ num ] C
+C->ε
+S->MachedS
+S->OpenS
+MachedS->if ( B ) MachedS else MachedS
+MachedS->L = E ;
+MachedS->do S while ( B ) ;
+MachedS->call id ( Elist ) ;
+MachedS->return E ;
+MachedS->break ;
+MachedS->Block
+OpenS->if ( B ) S
+OpenS->if ( B ) MachedS else OpenS
+L->L [ num ]
+L->id
+Elist->Elist , E
+Elist->E
+B->B || Join
+B->Join
+Join->Join && E
+Join->E
+E->E == Rel
+E->E != Rel
+E->Rel
+Rel->Expr < Expr
+Rel->Expr <= Expr
+Rel->Expr >= Expr
+Rel->Expr > Expr
+Rel->Expr
+Expr->Expr + Term
+Expr->Expr - Term
+Expr->Term
+Term->Term * Unary
+Term->Term / Unary
+Term->Unary
+Unary->! Unary
+Unary->- Unary
+Unary->Factor
+Factor->( B )
+Factor->L
+Factor->num
+Factor->real
+Factor->true
+Factor->false

@@ -90,7 +90,7 @@ public class Parser {
 						}
 						List<String> result_right = getFirst(p.right.get(j));
 						for(int k=0;k<result_right.size();k++){
-							if(!result_right.get(k).equals("EPSILON")){
+							if(!result_right.get(k).equals("ε")){
 								result.add(result_right.get(k));
 							}
 						}
@@ -98,10 +98,10 @@ public class Parser {
 					}
 				}
 				if(j==p.right.size()){
-					result.add("EPSILON");
+					result.add("ε");
 				} else{
 					result.addAll(getFirst(p.right.get(j)));
-					result.add("EPSILON");
+					result.add("ε");
 				}
 			}
 		}
@@ -120,7 +120,7 @@ public class Parser {
 		for(int i=0;i<this.production_list.size();i++){
 			if(this.production_list.get(i).left.equals(s)){
 				//TODO 如何表示空
-				if(this.production_list.get(i).right.contains("EPSILON")){
+				if(this.production_list.get(i).right.contains("ε")){
 					return true;
 				}
 			}
@@ -157,39 +157,16 @@ public class Parser {
 			this.non_terminal_set.add(lines.get(i).split("->")[0]);
 		}
 		for(int i=production_index;i<lines.size();i++){
-//			System.out.println(lines.get(i));
 			Production p = new Production();
 			p.num = i - production_index;
 			String[] words = lines.get(i).split("->");
 			p.left = words[0];
 			p.right = new ArrayList<String>();
-			for(int j=0;j<words[1].length();){
-				for(int k=j+1;k<=words[1].length();k++){
-					String word = words[1].substring(j, k);
-					if(this.terminal_set.contains(word)){
-						int flag = 0;
-						if(k+1<words[1].length()){
-							if(this.terminal_set.contains(words[1].substring(j, k+1))){
-								word = words[1].substring(j, k+1);
-								flag = 1;
-							}
-						}
-						p.right.add(word);
-						if(flag == 1){
-							j = k+1;
-							break;
-						} else{
-							j=k;
-							break;
-						}
-					}
-					if(this.non_terminal_set.contains(word)){
-						p.right.add(word);
-						j=k;
-						break;
-					}
-				}
+			String[] content = words[1].split(" ");
+			for(int j=0;j<content.length;j++){
+				p.right.add(content[j]);
 			}
+//			System.out.println(p);
 			this.production_list.add(p);
 		}
 	}
@@ -210,9 +187,9 @@ public class Parser {
 		int flag = 0;
 		while(i<input1.size()){
 			List<String> first = this.getFirst(input1.get(i));
-			if(first.contains("EPSILON")){
+			if(first.contains("ε")){
 				for(int j=0;j<first.size();j++){
-					if(!first.get(j).equals("EPSILON")){
+					if(!first.get(j).equals("ε")){
 						result.add(first.get(j));
 					}
 				}
@@ -263,7 +240,7 @@ public class Parser {
 						} else{
 							Item new_item = new Item();
 							String search_character = current_item.after_point.get(0);
-							if(search_character.equals("EPSILON")){
+							if(search_character.equals("ε")){
 								continue;
 							}
 							new_item.left = current_item.left;
@@ -311,7 +288,26 @@ public class Parser {
 			if(loop_flag == 0){
 				break;
 			}
-			this.stateNum = count;
+			this.stateNum = count-1;
+		}
+	}
+	
+	public void parser(String path){
+		FileReader file;
+		List<String> lines = new ArrayList<String>();
+		try {
+			file = new FileReader(path);
+			BufferedReader br = new BufferedReader(file);
+			String str;
+			while((str=br.readLine())!=null){
+				lines.add(str);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		List<String> input = new ArrayList<String>();
+		for(int i=0;i<lines.get(0).length();i++){
+			input.add("" + lines.get(0).charAt(i));
 		}
 	}
 	
@@ -319,28 +315,36 @@ public class Parser {
 		table = new AnalysisTable(new ArrayList<String>(this.terminal_set),new ArrayList<String>(this.non_terminal_set),stateNum);
 		for(int i=0;i<this.item_set_list.size();i++){
 			ItemSet current = this.item_set_list.get(i);
-			System.out.println(current);
 			Iterator<Item> itr1 = current.itemSet.iterator();
 			while(itr1.hasNext()){
 				
 				Item item = itr1.next();
-				System.out.println(item);
 				if(item.after_point.size() == 0 && (!item.left.equals("S1"))){
-					for(int j=0;j<item.search_character.size();i++){
-						table.action_table[current.num][table.terminals.indexOf(item.search_character.get(j))] = item.left + "->" + item.before_point;
+					for(int j=0;j<item.search_character.size();j++){
+						Production p = new Production();
+						p.left = item.left;
+						p.right = item.before_point;
+						table.action_table[current.num][table.terminals.indexOf(item.search_character.get(j))] = p.toString();
 					}
 				}
 				if(item.after_point.size() == 0 && item.left.equals("S1")){
-					for(int j=0;j<item.search_character.size();i++){
+					for(int j=0;j<item.search_character.size();j++){
 						table.action_table[current.num][table.terminals.indexOf(item.search_character.get(j))] = "acc";
 					}
 				}
 				if(item.after_point.size()>0 && this.isTerminal(item.after_point.get(0)) && current.go.containsKey(item.after_point.get(0))){
 					table.action_table[current.num][table.terminals.indexOf(item.after_point.get(0))] = "S" + current.go.get(item.after_point.get(0));
 				}
+				if(item.after_point.size()>0 && item.after_point.get(0).equals("ε")){
+					for(int j=0;j<item.search_character.size();j++){
+						Production p = new Production();
+						p.left = item.left;
+						p.right = item.after_point;
+						table.action_table[current.num][table.terminals.indexOf(item.search_character.get(j))] = p.toString();
+					}
+				}
 			}
 			for (Map.Entry<String, Integer> entry : current.go.entrySet()) { 
-				
 				if(this.isNonTerminal(entry.getKey())){
 					table.goto_table[current.num][table.nonterminals.indexOf(entry.getKey())] = entry.getValue() + "";
 				}
@@ -353,13 +357,24 @@ public class Parser {
 		Parser parser = new Parser();
 		parser.readFromFile("input.txt");
 		
+		/*for(int i=0;i<parser.production_list.size();i++){
+			for(int j=0;j<parser.production_list.get(i).right.size();j++){
+				if(parser.isNonTerminal(parser.production_list.get(i).right.get(j))){
+					
+				} else if(parser.isTerminal(parser.production_list.get(i).right.get(j))){
+					
+				}else{
+					System.out.println(parser.production_list.get(i).right.get(j));
+				}
+			}
+		}*/
 		parser.getItemSet();
 		//parser.fillTable();
-		//System.out.println(parser.table);
+		
 		for(int i=0;i<parser.item_set_list.size();i++){
 			System.out.print(parser.item_set_list.get(i));
 		}
-		
+		//System.out.println(parser.table);
 		/*Item it = new Item();
 		it.left = "A";
 		it.before_point = new ArrayList<String>();

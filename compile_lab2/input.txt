@@ -1,11 +1,11 @@
 Terminals:
-EPSILON
+¦Å
 a
 b
 Productions:
 S1->S
 S->A
-A->BA
-A->EPSILON
-B->aB
+A->B A
+A->¦Å
+B->a B
 B->b
