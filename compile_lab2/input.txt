@@ -5,7 +5,5 @@ b
 Productions:
 S1->S
 S->A
-A->B A
-A->¦Å
-B->a B
-B->b
+A->B A|¦Å
+B->a B|b

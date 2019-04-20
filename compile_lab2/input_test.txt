@@ -1,0 +1,18 @@
+﻿S1->P
+P->D P|S P|ε
+D->prco X id ( M ) { P }|record id { P }|T id A ;
+A->= F A|, id A|ε
+M->M , X id|X id
+T->X C
+X->int|float
+C->[ digit ] C|ε
+S->L = E ;|if ( B ) S else S|while ( B ) do S ;|call id ( Elist ) ;|return E ;
+L->L [ digit ]|id
+E->E + G|G
+G->G * F|F
+F->( E )|digit|id
+B->B or H|H
+H->H and I|I
+I->not I|( B )|E Relop E|true|false
+Relop-><|<=|>|>=|==|!=
+Elist->Elist , E|E

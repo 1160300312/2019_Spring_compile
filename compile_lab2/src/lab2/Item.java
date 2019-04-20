@@ -71,13 +71,13 @@ public class Item {
 		int sum = 0;
 		sum += this.left.hashCode();
 		for(int i=0;i<this.before_point.size();i++){
-			sum += this.before_point.get(i).hashCode();
+			sum += 31 * sum + this.before_point.get(i).hashCode();
 		}
 		for(int i=0;i<this.after_point.size();i++){
-			sum += this.after_point.get(i).hashCode()*2;
+			sum += 31 * sum + this.after_point.get(i).hashCode()*2;
 		}
 		for(int i=0;i<this.search_character.size();i++){
-			sum += this.search_character.get(i).hashCode()*3;
+			sum += 31 + sum + this.search_character.get(i).hashCode()*3;
 		}
 		return sum;
 	}

@@ -28,7 +28,7 @@ public class AnalysisTable {
 			}
 		}
 		this.nonterminals = n;
-		action_table = new String[setnum+1][l1.size()];
+		action_table = new String[setnum+1][t.size()];
 		goto_table = new String[setnum+1][l2.size()];
 		this.setnum = setnum;
 	}

@@ -31,4 +31,17 @@ public class ItemSet {
 		}
 		return result;
 	}
+	
+	@Override
+	public boolean equals(Object o){
+		if(o == null){
+			return false;
+		} else{
+			if(o instanceof ItemSet){
+				ItemSet os = (ItemSet)o;
+				return this.itemSet.equals(os.itemSet);
+			}
+		}
+		return false;
+	}
 }

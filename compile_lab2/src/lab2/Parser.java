@@ -1,8 +1,10 @@
 package lab2;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,6 +12,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
+import lab1.Lex;
+import lab1.Token;
 
 public class Parser {
 	static int count = 0;
@@ -19,13 +24,14 @@ public class Parser {
 	List<ItemSet> item_set_list = new ArrayList<ItemSet>();
 	AnalysisTable table;
 	int stateNum;
+	List<Integer> line_index = new ArrayList<Integer>();
+	List<String> error = new ArrayList<String>();
+	List<String> output = new ArrayList<String>();
 	
 	
 	//////////////
-	public Set<Item> getClosure(Item item){
-		Set<Item> result = new HashSet<Item>();
-		result.add(item);
-		int size = 1;
+	public Set<Item> getClosure(Set<Item> result){
+		int size = result.size();
 		while(true){
 			result = this.countClosure(result);
 			if(size == result.size()){
@@ -129,11 +135,11 @@ public class Parser {
 	}
 	
 	public void readFromFile(String path){
-		FileReader file;
 		List<String> lines = new ArrayList<String>();
 		try {
-			file = new FileReader(path);
-			BufferedReader br = new BufferedReader(file);
+			FileInputStream fis = new FileInputStream(path);   
+			InputStreamReader isr = new InputStreamReader(fis, "UTF-8");
+			BufferedReader br = new BufferedReader(isr);  
 			String str;
 			while((str=br.readLine())!=null){
 				lines.add(str);
@@ -141,25 +147,13 @@ public class Parser {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		int production_index = 0;
 		for(int i=0;i<lines.size();i++){
-//			System.out.println(lines.get(i));
-			if(lines.get(i).equals("Terminals:")){
-				continue;
-			}
-			if(lines.get(i).equals("Productions:")){
-				production_index = i+1;
-				break;
-			}
-			this.terminal_set.add(lines.get(i));
-		}
-		for(int i=production_index;i<lines.size();i++){
 			this.non_terminal_set.add(lines.get(i).split("->")[0]);
 		}
-		for(int i=production_index;i<lines.size();i++){
-			Production p = new Production();
-			p.num = i - production_index;
-			String[] words = lines.get(i).split("->");
+		for(int i=0;i<lines.size();i++){
+			
+			
+			/*String[] words = lines.get(i).split("->");
 			p.left = words[0];
 			p.right = new ArrayList<String>();
 			String[] content = words[1].split(" ");
@@ -167,7 +161,22 @@ public class Parser {
 				p.right.add(content[j]);
 			}
 //			System.out.println(p);
-			this.production_list.add(p);
+			this.production_list.add(p);*/
+			String left = lines.get(i).split("->")[0];
+			String[] right = lines.get(i).split("->")[1].split("\\|");
+			for(int j=0;j<right.length;j++){
+				Production p = new Production();
+				p.left = left;
+				p.right = new ArrayList<String>();
+				String[] content = right[j].split(" ");
+				for(int k=0;k<content.length;k++){
+					if(!this.isNonTerminal(content[k])){
+						this.terminal_set.add(content[k]);
+					}
+					p.right.add(content[k]);
+				}
+				this.production_list.add(p);
+			}
 		}
 	}
 	
@@ -206,15 +215,115 @@ public class Parser {
 		return result;
 	}
 	
+	public ItemSet goTo(ItemSet i, String x){
+		ItemSet j = new ItemSet();
+		Set<Item> iset = new HashSet<Item>();
+		List<Item> itlist = new ArrayList<Item>(i.itemSet);
+		for(int k=0;k<itlist.size();k++){
+			if(itlist.get(k).after_point.size() == 0){
+				continue;
+			} else{
+				if(itlist.get(k).after_point.get(0).equals(x)){
+					Item it = new Item();
+					it.before_point = new ArrayList<String>();
+					it.after_point = new ArrayList<String>();
+					it.left = itlist.get(k).left;
+					for(int m=0;m<itlist.get(k).before_point.size();m++){
+						it.before_point.add(itlist.get(k).before_point.get(m));
+					}
+					it.before_point.add(itlist.get(k).after_point.get(0));
+					for(int n=1;n<itlist.get(k).after_point.size();n++){
+						it.after_point.add(itlist.get(k).after_point.get(n));
+					}
+					it.search_character = itlist.get(k).search_character;
+					iset.add(it);
+				}
+			}
+		}
+		j.itemSet = this.getClosure(iset);
+		return j;
+	}
+	
 	public void getItemSet(){
 		Item start = new Item();
 		start.left = "S1";
 		start.before_point = new ArrayList<String>();
 		start.after_point = new ArrayList<String>();
 		start.search_character = new ArrayList<String>();
-		start.after_point.add("S");
+		start.after_point.add("P");
 		start.search_character.add("#");
-		Set<Item> start_set = this.getClosure(start);
+		Set<Item> start1 = new HashSet<Item>();
+		start1.add(start);
+		Set<Item> start_set = this.getClosure(start1);
+		ItemSet start_itemset = new ItemSet();
+		start_itemset.num = 0;
+		start_itemset.itemSet = start_set;
+		this.item_set_list.add(start_itemset);
+		int count = 1;
+		while(true){
+			int size = this.item_set_list.size();
+			for(int i=0;i<this.item_set_list.size();i++){
+				List<String> not = new ArrayList<String>(this.non_terminal_set);
+				for(int j=0;j<not.size();j++){
+					if(this.goTo(this.item_set_list.get(i), not.get(j)).itemSet.size() > 0 && !this.item_set_list.contains(this.goTo(this.item_set_list.get(i), not.get(j)))){
+						ItemSet p = new ItemSet();
+						p = this.goTo(this.item_set_list.get(i), not.get(j));
+						p.num = count;
+						this.item_set_list.get(i).go.put(not.get(j), count);
+						this.item_set_list.add(p);
+						count++;
+					}
+					if(this.item_set_list.contains(this.goTo(this.item_set_list.get(i), not.get(j)))){
+						int index = 0;
+						for(int a=0;a<this.item_set_list.size();a++){
+							if(this.item_set_list.get(a).equals(this.goTo(this.item_set_list.get(i), not.get(j)))){
+								index = a;
+							}
+						}
+						this.item_set_list.get(i).go.put(not.get(j), index);
+					}
+				}
+				List<String> t = new ArrayList<String>(this.terminal_set);
+				for(int j=0;j<t.size();j++){
+					if(!t.get(j).equals("¦Å")){
+						if(this.goTo(this.item_set_list.get(i), t.get(j)).itemSet.size() > 0 && !this.item_set_list.contains(this.goTo(this.item_set_list.get(i), t.get(j)))){
+							ItemSet p = new ItemSet();
+							p = this.goTo(this.item_set_list.get(i), t.get(j));
+							p.num = count;
+							this.item_set_list.get(i).go.put(t.get(j), count);
+							this.item_set_list.add(p);
+							count++;
+						}
+						if(this.item_set_list.contains(this.goTo(this.item_set_list.get(i), t.get(j)))){
+							int index = 0;
+							for(int a=0;a<this.item_set_list.size();a++){
+								if(this.item_set_list.get(a).equals(this.goTo(this.item_set_list.get(i), t.get(j)))){
+									index = a;
+								}
+							}
+							this.item_set_list.get(i).go.put(t.get(j), index);
+						}
+					}
+				}
+			}
+			if(this.item_set_list.size() == size){
+				break;
+			}
+		}
+		this.stateNum = count - 1;
+	}
+	
+	/*public void getItemSet(){
+		Item start = new Item();
+		start.left = "S1";
+		start.before_point = new ArrayList<String>();
+		start.after_point = new ArrayList<String>();
+		start.search_character = new ArrayList<String>();
+		start.after_point.add("P");
+		start.search_character.add("#");
+		Set<Item> start1 = new HashSet<Item>();
+		start1.add(start);
+		Set<Item> start_set = this.getClosure(start1);
 		ItemSet start_itemset = new ItemSet();
 		start_itemset.num = 0;
 		start_itemset.itemSet = start_set;
@@ -270,13 +379,20 @@ public class Parser {
 								current.go.put(search_character, repeat_num);
 								continue;
 							} else{
-								set.itemSet = this.getClosure(new_item);
-								set.num = count;
-								this.item_set_list.add(set);
-								current.go.put(search_character, count);
-								count ++;
-								loop_flag = 1;
-								break;
+								Set<Item> is = new HashSet<Item>();
+								is.add(new_item);
+								if(current.go.containsKey(search_character)){
+									this.item_set_list.get(current.go.get(search_character)).itemSet.addAll(this.getClosure(is));
+									break;
+								}else{
+									set.itemSet = this.getClosure(is);
+									set.num = count;
+									this.item_set_list.add(set);
+									current.go.put(search_character, count);
+									count ++;
+									loop_flag = 1;
+									break;
+								}
 							}
 						}
 					}
@@ -288,12 +404,12 @@ public class Parser {
 			if(loop_flag == 0){
 				break;
 			}
-			this.stateNum = count-1;
 		}
-	}
+		this.stateNum = count-1;
+	}*/
 	
 	public void parser(String path){
-		FileReader file;
+		/*FileReader file;
 		List<String> lines = new ArrayList<String>();
 		try {
 			file = new FileReader(path);
@@ -307,12 +423,112 @@ public class Parser {
 		}
 		List<String> input = new ArrayList<String>();
 		for(int i=0;i<lines.get(0).length();i++){
-			input.add("" + lines.get(0).charAt(i));
+			input.add(lines.get(0).charAt(i) + "");
+		}*/
+		List<String> input = new ArrayList<String>();
+		Lex lex = new Lex();
+		List<Token> token_list = lex.lex(path);
+		for(int i=0;i<token_list.size();i++){
+			if(token_list.get(i).property.equals("IDN")){
+				input.add("id");
+				this.line_index.add(token_list.get(i).line);
+			} else if(token_list.get(i).property.equals("CONST_INT")||token_list.get(i).property.equals("CONST_FLOAT")){
+				input.add("digit");
+				this.line_index.add(token_list.get(i).line);
+			}else if(token_list.get(i).property.equals("COMMENT")){
+				continue;
+			}else{
+				input.add(token_list.get(i).value);
+				this.line_index.add(token_list.get(i).line);
+			}
+		}
+		input.add("#");
+		this.line_index.add(this.line_index.get(this.line_index.size()-1));
+		Stack<Integer> state_stack = new Stack<Integer>();
+		Stack<String> parser_stack = new Stack<String>();
+		state_stack.push(0);
+		while(true){
+			int break_flag = 0;
+			String state = this.table.action_table[state_stack.peek()][this.table.terminals.indexOf(input.get(0))];
+			if(state == null){
+				this.error.add("Error at line " + this.line_index.get(0));
+				String top = parser_stack.peek();
+				state_stack.pop();
+				while(true){
+					while(!this.isNonTerminal(parser_stack.peek())){
+						state_stack.pop();
+						parser_stack.pop();
+						if(state_stack.peek() == 0){
+							break_flag = 1;
+							break;
+						}
+						
+					}
+					if(break_flag == 1){
+						break;
+					}
+					if(this.table.goto_table[state_stack.peek()][this.table.nonterminals.indexOf(parser_stack.peek())] == null){
+						state_stack.pop();
+						parser_stack.pop();
+						if(state_stack.peek() == 0){
+							break_flag = 1;
+							break;
+						}
+						continue;
+					} else{
+						break;
+					}
+				}
+				while(this.table.action_table[state_stack.peek()][this.table.terminals.indexOf(input.get(0))] == null){
+					input.remove(0);
+					this.line_index.remove(0);
+					if(input.size() == 0){
+						break_flag = 1;
+						break;
+					}
+				}if(break_flag == 1){
+					break;
+				}
+				continue;
+			}
+			if(break_flag == 1){
+				break;
+			}
+			if(state.charAt(0) == 'S'){
+				this.output.add(state);
+				int new_state = Integer.parseInt(state.substring(1, state.length()));
+				state_stack.push(new_state);
+				parser_stack.push(input.get(0));
+				input.remove(0);
+				this.line_index.remove(0);
+			}
+			if(state.charAt(0) == 'r' && !state.split("->")[1].equals("¦Å)")){
+				this.output.add(state);
+				int length = state.split("->")[1].split(" ").length;
+				for(int i=0;i<length;i++){
+					state_stack.pop();
+					parser_stack.pop();
+				}
+				parser_stack.push(state.split("->")[0].substring(2, state.split("->")[0].length()));
+				int new_state = Integer.parseInt(this.table.goto_table[state_stack.peek()][this.table.nonterminals.indexOf(state.split("->")[0].substring(2, state.split("->")[0].length()))]);
+				state_stack.push(new_state);
+			}
+			if(state.charAt(0) == 'r' && state.split("->")[1].equals("¦Å)")){
+				this.output.add(state);
+				parser_stack.push(state.split("->")[0].substring(2, state.split("->")[0].length()));
+				int new_state = Integer.parseInt(this.table.goto_table[state_stack.peek()][this.table.nonterminals.indexOf(parser_stack.peek())]);
+				state_stack.push(new_state);
+			}
+			if(state.equals("acc")){
+				this.output.add(state);
+				break;
+			}
 		}
 	}
 	
 	public void fillTable(){
 		table = new AnalysisTable(new ArrayList<String>(this.terminal_set),new ArrayList<String>(this.non_terminal_set),stateNum);
+		System.out.println(this.terminal_set.size());
 		for(int i=0;i<this.item_set_list.size();i++){
 			ItemSet current = this.item_set_list.get(i);
 			Iterator<Item> itr1 = current.itemSet.iterator();
@@ -324,7 +540,7 @@ public class Parser {
 						Production p = new Production();
 						p.left = item.left;
 						p.right = item.before_point;
-						table.action_table[current.num][table.terminals.indexOf(item.search_character.get(j))] = p.toString();
+						table.action_table[current.num][table.terminals.indexOf(item.search_character.get(j))] = "r(" + p.toString() + ")";
 					}
 				}
 				if(item.after_point.size() == 0 && item.left.equals("S1")){
@@ -333,6 +549,7 @@ public class Parser {
 					}
 				}
 				if(item.after_point.size()>0 && this.isTerminal(item.after_point.get(0)) && current.go.containsKey(item.after_point.get(0))){
+					//System.out.println(item.after_point.get(0));
 					table.action_table[current.num][table.terminals.indexOf(item.after_point.get(0))] = "S" + current.go.get(item.after_point.get(0));
 				}
 				if(item.after_point.size()>0 && item.after_point.get(0).equals("¦Å")){
@@ -340,7 +557,9 @@ public class Parser {
 						Production p = new Production();
 						p.left = item.left;
 						p.right = item.after_point;
-						table.action_table[current.num][table.terminals.indexOf(item.search_character.get(j))] = p.toString();
+						System.out.println(item.search_character.get(j));
+						System.out.println(current.num);
+						table.action_table[current.num][table.terminals.indexOf(item.search_character.get(j))] = "r(" + p.toString() + ")";
 					}
 				}
 			}
@@ -355,7 +574,7 @@ public class Parser {
 	
 	public static void main(String args[]){
 		Parser parser = new Parser();
-		parser.readFromFile("input.txt");
+		parser.readFromFile("input_wbh.txt");
 		
 		/*for(int i=0;i<parser.production_list.size();i++){
 			for(int j=0;j<parser.production_list.get(i).right.size();j++){
@@ -368,13 +587,28 @@ public class Parser {
 				}
 			}
 		}*/
-		parser.getItemSet();
-		//parser.fillTable();
 		
+		parser.getItemSet();
+		/*System.out.println(parser.item_set_list.size());
 		for(int i=0;i<parser.item_set_list.size();i++){
 			System.out.print(parser.item_set_list.get(i));
-		}
+		}*/
+		/*for(int i=0;i<parser.production_list.size();i++){
+			System.out.println(parser.production_list.get(i));
+		}*/
+		parser.fillTable();
+		//System.out.println(parser.table.action_table[0][parser.table.terminals.indexOf("id")]);
+		
+		parser.parser("test.txt");
 		//System.out.println(parser.table);
+		for(int i=0;i<parser.output.size();i++){
+			System.out.println(parser.output.get(i));
+		}
+		for(int i=0;i<parser.error.size();i++){
+			System.out.println(parser.error.get(i));
+		}
+
+		
 		/*Item it = new Item();
 		it.left = "A";
 		it.before_point = new ArrayList<String>();

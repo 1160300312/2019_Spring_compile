@@ -11,9 +11,10 @@ public class Production {
 	public String toString(){
 		String s = "";
 		s += left + "->";
-		for(int i=0;i<right.size();i++){
-			s += right.get(i);
+		for(int i=0;i<right.size()-1;i++){
+			s += right.get(i) + " ";
 		}
+		s += right.get(right.size()-1);
 		return s;
 	}
 }

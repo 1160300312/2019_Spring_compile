@@ -1,0 +1,85 @@
+Terminals:
+¦Å
+prco
+id
+(
+)
+{
+}
+=
+,
+int
+float
+record
+[
+]
+digit
+;
+if
+then
+else
+while
+do
+call
+return
++
+*
+or
+and
+not
+true
+false
+<
+<=
+>
+>=
+==
+!=
+Productions:
+S1->P
+P->D P
+P->S P
+P->¦Å
+D->prco X id ( M ) { P }
+D->record id { P }
+A->= F A
+A->, id A
+A->¦Å
+M->M , X id
+M->X id
+T->X C
+X->int
+X->float
+C->[ digit ] C
+C->¦Å
+S->L = E ;
+S->if B then S else S
+S->while B do S
+S->call id ( Elist ) ;
+S->return E ;
+L->L [ digit ]
+L->id
+E->E + G
+E->G
+G->G * F
+G->F
+F->( E )
+F->digit
+F->id
+B->B or H
+B->H
+H->H and I
+H->I
+I->not I
+I->( B )
+I->E relop E
+I->true
+I->false
+relop-><
+relop-><=
+relop->>
+relop->>=
+relop->==
+relop->!=
+Elist->Elist , E
+Elist->E
