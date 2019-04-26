@@ -35,7 +35,9 @@ public class SemParser {
 	Stack<SymbolTable> table_stack = new Stack<SymbolTable>();
 	Stack<Integer> offset_stack = new Stack<Integer>();
 	Map<SymbolTable, Integer> map_table = new HashMap<SymbolTable, Integer>();
-	
+	List<Quaternary> quaternary_list = new ArrayList<Quaternary>();
+	int temp = 0;
+	int num = 0;	
 	
 	//////////////
 	public Set<Item> getClosure(Set<Item> result){
@@ -526,9 +528,10 @@ public class SemParser {
 					id = new Identifier("X");
 					id.attributes.put("type", "float");
 					id.attributes.put("width", "4");
-				} else if(state.equals("r(D->proc X id ( M ) A1 { P })")){
+				} else if(state.equals("r(D->proc X id ( M ) A2 { P })")){
 					id = new Identifier("D");
 					this.map_table.put(this.table_stack.peek(),this.offset_stack.peek());
+					this.table_stack.peek().name = parser_stack.get(parser_stack.size()-8).name;
 					this.table_stack.pop();
 					this.offset_stack.pop();
 				} /*else if(state.equals("r(M->X id)")){
@@ -545,7 +548,7 @@ public class SemParser {
 					id = new Identifier("C");
 					Identifier i1 = parser_stack.get(parser_stack.size()-1);
 					Identifier i2 = parser_stack.get(parser_stack.size()-3);
-					id.attributes.put("type", i1.attributes.get("type") + "[" + i2.name + "]");
+					id.attributes.put("type", "[" + i2.name + "]" + i1.attributes.get("type") );
 					id.attributes.put("width", (Integer.parseInt(i1.attributes.get("width"))*Integer.parseInt(i2.name)) + "");
 				} else if(state.equals("r(T->X A1 C)")){
 					id = new Identifier("T");
@@ -554,13 +557,187 @@ public class SemParser {
 					id.attributes.put("width", i1.attributes.get("width"));
 				} else if(state.equals("r(D->T id ;)")){
 					id = new Identifier("D");
-					Identifier i1 = parser_stack.get(parser_stack.size()-1);
-					Identifier i2 = parser_stack.get(parser_stack.size()-2);
+					Identifier i1 = parser_stack.get(parser_stack.size()-2);
+					Identifier i2 = parser_stack.get(parser_stack.size()-3);
 					Symbol s = new Symbol();
 					s.name = i1.name;
 					s.type = i2.attributes.get("type");
-					s.offset = Integer.parseInt(i2.attributes.get("width"));
-					this.table_stack.peek().table.add(s);
+					s.offset = this.offset_stack.peek();
+					int flag = 1;
+					SymbolTable currentTable = this.table_stack.peek();
+					while(currentTable!=null){
+						for(int index=0;index<currentTable.table.size();index++){
+							if(currentTable.table.get(index).name.equals(s.name)){
+								flag = 0;
+								break;
+							}
+						}
+						if(flag == 0){
+							break;
+						}
+						currentTable = currentTable.father;
+					}
+					if(flag == 0){
+						System.out.println("error");
+						//TODO 错误处理
+					} else {
+						this.offset_stack.set(this.offset_stack.size()-1, this.offset_stack.peek() + Integer.parseInt(i2.attributes.get("width")));
+						this.table_stack.peek().table.add(s);
+					}
+					
+				} else if(state.equals("r(F->id)")){
+					id = new Identifier("F");
+					Identifier i1 = parser_stack.peek();
+					int flag = 1;
+					SymbolTable currentTable = this.table_stack.peek();
+					while(currentTable!=null){
+						for(int index=0;index<currentTable.table.size();index++){
+							if(currentTable.table.get(index).name.equals(i1.name)){
+								flag = 0;
+								break;
+							}
+						}
+						if(flag == 0){
+							break;
+						}
+						currentTable = currentTable.father;
+					}
+					if(flag == 1){
+						System.out.println("error");
+						//TODO 错误处理
+					} else{
+						id.attributes.put("addr", i1.name);
+					}
+				} else if(state.equals("r(F->digit)")){
+					id = new Identifier("F");
+					Identifier i1 = parser_stack.peek();
+					id.attributes.put("addr", i1.name);
+				} else if(state.equals("r(F->( E ))")){
+					id = new Identifier("F");
+					Identifier i1 = parser_stack.get(parser_stack.size()-2);
+					id.attributes.put("addr", i1.attributes.get("addr"));
+				} else if(state.equals("r(G->F)")){
+					id = new Identifier("G");
+					Identifier i1 = parser_stack.peek();
+					id.attributes.put("addr", i1.attributes.get("addr"));
+				} else if(state.equals("r(G->G * F)")){
+					id = new Identifier("G");
+					id.attributes.put("addr", this.newTemp());
+					Identifier i1 = parser_stack.peek();
+					Identifier i2 = parser_stack.get(parser_stack.size()-3);
+					Quaternary q = new Quaternary("*",i2.attributes.get("addr"),i1.attributes.get("addr"),id.attributes.get("addr"));
+					q.num = this.num;
+					num ++;
+					this.quaternary_list.add(q);
+				} else if(state.equals("r(E->G)")){
+					id = new Identifier("E");
+					Identifier i1 = parser_stack.peek();
+					id.attributes.put("addr", i1.attributes.get("addr"));
+				} else if(state.equals("r(E->E + G)")){
+					id = new Identifier("E");
+					id.attributes.put("addr", this.newTemp());
+					Identifier i1 = parser_stack.peek();
+					Identifier i2 = parser_stack.get(parser_stack.size()-3);
+					Quaternary q = new Quaternary("+",i2.attributes.get("addr"),i1.attributes.get("addr"),id.attributes.get("addr"));
+					q.num = this.num;
+					num ++;
+					this.quaternary_list.add(q);
+				} else if(state.equals("r(S->id = E ;)")){
+					id = new Identifier("S");
+					Identifier i1 = parser_stack.get(parser_stack.size()-2);
+					Identifier i2 = parser_stack.get(parser_stack.size()-4);
+					int flag = 1;
+					SymbolTable currentTable = this.table_stack.peek();
+					while(currentTable!=null){
+						for(int index=0;index<currentTable.table.size();index++){
+							if(currentTable.table.get(index).name.equals(i2.name)){
+								flag = 0;
+								break;
+							}
+						}
+						if(flag == 0){
+							break;
+						}
+						currentTable = currentTable.father;
+					}
+					if(flag == 1){
+						System.out.println("error");
+						//TODO 错误处理  未定义值
+					} else{
+						Quaternary q = new Quaternary("=",i1.attributes.get("addr"),i2.name);
+						this.quaternary_list.add(q);
+						q.num = this.num;
+						this.num ++;
+					}
+				} else if(state.equals("r(L->id [ E ])")){
+					id = new Identifier("L");
+					Identifier i1 = parser_stack.get(parser_stack.size()-2);
+					Identifier i2 = parser_stack.get(parser_stack.size()-4);
+					Symbol s1 = null;
+					int flag = 1;
+					SymbolTable currentTable = this.table_stack.peek();
+					while(currentTable!=null){
+						for(int index=0;index<currentTable.table.size();index++){
+							if(currentTable.table.get(index).name.equals(i2.name)){
+								s1 = currentTable.table.get(index);
+								flag = 0;
+								break;
+							}
+						}
+						if(flag == 0){
+							break;
+						}
+						currentTable = currentTable.father;
+					}
+					if(flag == 1){
+						System.out.println("error");
+						//TODO 错误处理  未定义值
+					} else{
+						id.attributes.put("addr", this.newTemp());
+						id.attributes.put("id", s1.name);
+						id.attributes.put("type", s1.type);
+						id.attributes.put("dimension", 1+"");
+						int dim = this.getDimension(id.attributes.get("type")).get(0);
+						Quaternary q = new Quaternary("*",i1.attributes.get("addr"),4*dim + "",id.attributes.get("addr"));
+						q.num = this.num;
+						this.quaternary_list.add(q);
+						this.num ++;
+					}
+				} else if(state.equals("r(L->L [ E ])")){
+					id = new Identifier("L");
+					Identifier i1 = parser_stack.get(parser_stack.size()-2);
+					Identifier i2 = parser_stack.get(parser_stack.size()-4);
+					String te = this.newTemp(); 
+					List<Integer> ilist = this.getDimension(i2.attributes.get("type"));
+					Quaternary q1 = null;
+					if(ilist.size() == Integer.parseInt(i2.attributes.get("dimension"))+1){
+						q1 = new Quaternary("*",i1.attributes.get("addr"),4 + "",te);
+					} else{
+						int dim = this.getDimension(i2.attributes.get("type")).get(Integer.parseInt(i2.attributes.get("dimension")));
+						q1 = new Quaternary("*",i1.attributes.get("addr"),4*dim  + "",te);
+					}
+					id.attributes.put("dimension", Integer.parseInt(i2.attributes.get("dimension"))+1+"");
+					q1.num = this.num;
+					this.quaternary_list.add(q1);
+					this.num++;
+					id.attributes.put("addr", this.newTemp());
+					Quaternary q2 = new Quaternary("+",i2.attributes.get("addr"),te,id.attributes.get("addr"));
+					q2.num = this.num;
+					this.quaternary_list.add(q2);
+					this.num++;
+					id.attributes.put("id", i2.attributes.get("id"));
+					id.attributes.put("type", i2.attributes.get("type"));
+
+				} else if(state.equals("r(S->L = E ;)")){
+					id = new Identifier("S");
+					Identifier i1 = parser_stack.get(parser_stack.size()-2);
+					Identifier i2 = parser_stack.get(parser_stack.size()-4);
+					Quaternary q = new Quaternary("=",i1.attributes.get("addr"), i2.attributes.get("id") + "[" + i2.attributes.get("addr") + "]");
+					q.num = this.num;
+					this.quaternary_list.add(q);
+					this.num ++;
+				} else if(state.equals("r(B->true)")){
+					
 				} else{
 					id = new Identifier(state.split("->")[0].substring(2, state.split("->")[0].length()));
 				}
@@ -587,6 +764,13 @@ public class SemParser {
 					id = new Identifier("C");
 					id.attributes.put("type", tt);
 					id.attributes.put("width", ww);
+				} else if(state.equals("r(A2->ε)")){
+					id = new Identifier("A2");
+					SymbolTable new_table = new SymbolTable();
+					new_table.father = this.table_stack.peek();
+					this.table_stack.peek().sons.add(new_table);
+					this.table_stack.push(new_table);
+					this.offset_stack.push(0);
 				} else{
 					id = new Identifier(state.split("->")[0].substring(2, state.split("->")[0].length()));
 				}
@@ -598,7 +782,8 @@ public class SemParser {
 				state_stack.push(new_state);
 			}
 			if(state.equals("acc")){
-				this.output.add(state);
+				this.output.add(state);;
+				this.map_table.put(this.table_stack.peek(), this.offset_stack.peek());
 				break;
 			}
 		}
@@ -647,6 +832,30 @@ public class SemParser {
 		}
 	}
 	
+	public List<Integer> getDimension(String s){
+		List<Integer> result = new ArrayList<Integer>();
+		String[] word = s.split("\\]\\[");
+		result.add(Integer.parseInt(word[0].split("\\[")[1]));
+		for(int i=1;i<word.length-1;i++){
+			result.add(Integer.parseInt(word[i]));
+		}
+		result.add(Integer.parseInt(word[word.length-1].split("]")[0]));
+		for(int i=0;i<result.size();i++){
+			int temp = 1;
+			for(int j=i+1;j<result.size();j++){
+				temp *= result.get(j);
+			}
+			result.set(i, temp);
+		}
+		return result;
+	} 
+	
+	public String newTemp(){
+		String result = "t" + this.temp;
+		this.temp ++;
+		return result;
+	}
+	
 	public static void main(String args[]){
 		SemParser parser = new SemParser();
 		parser.readFromFile("input_wbh.txt");
@@ -676,15 +885,21 @@ public class SemParser {
 		
 		parser.parser("test1.txt");
 		
-		/*for (Map.Entry<SymbolTable, Integer> entry : SemParser.entrySet()) { 
-			result += entry.getKey() + " " + entry.getValue() + "\n";  
-		}*/
+		for (Map.Entry<SymbolTable, Integer> entry : parser.map_table.entrySet()) { 
+			System.out.println(entry.getKey());
+			System.out.println(entry.getValue());
+			if(entry.getKey().father!=null)
+				System.out.println(entry.getKey().father.name);
+		}
 		//System.out.println(parser.table);
-		for(int i=0;i<parser.output.size();i++){
+		/*for(int i=0;i<parser.output.size();i++){
 			System.out.println(parser.output.get(i));
 		}
 		for(int i=0;i<parser.error.size();i++){
 			System.out.println(parser.error.get(i));
+		}*/
+		for(int i=0;i<parser.quaternary_list.size();i++){
+			System.out.println(parser.quaternary_list.get(i));
 		}
 		
 

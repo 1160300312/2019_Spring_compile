@@ -1,1 +1,18 @@
-int a;
+int[5][6][7] a;
+int b;
+float c;
+int m;
+
+c = c * b;
+a[2][3][4] = 5;
+c = c + 5;
+
+proc int increase(int x, int y){
+   int y;
+   float x;
+   return y;
+}
+
+if(m<8 and m>5)	
+then m = m +1;  
+else m = m*2;

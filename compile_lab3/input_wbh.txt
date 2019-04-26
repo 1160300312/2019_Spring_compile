@@ -1,14 +1,15 @@
 ﻿S1->P
 P->D P|S P|ε
-D->proc X id ( M ) { P }|T id ;|record id { P }
+D->proc X id ( M ) A2 { P }|T id ;|record id { P }
+A2->ε
 M->M , X id|X id
 A->= F A|, id A|ε
 T->X A1 C
 A1->ε
 X->int|float
 C->[ digit ] C|ε
-S->L = E ;|if ( B ) then S else S|while ( B ) do S|call id ( Elist ) ;|return E ;
-L->L [ digit ]|id
+S->id = E ;|if ( B ) then S else S|while ( B ) do S|call id ( Elist ) ;|return E ;|L = E ;
+L->L [ E ]|id [ E ]
 E->E + G|G
 G->G * F|F
 F->( E )|digit|id
