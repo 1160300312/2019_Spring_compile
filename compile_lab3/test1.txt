@@ -2,6 +2,8 @@ int[5][6][7] a;
 int b;
 float c;
 int m;
+int x;
+int y;
 
 c = c * b;
 a[2][3][4] = 5;
@@ -10,9 +12,10 @@ c = c + 5;
 proc int increase(int x, int y){
    int y;
    float x;
+   int z;
    return y;
 }
 
-if(m<8 and m>5)	
+if(x<100 or x>200 and x!=y)	
 then m = m +1;  
 else m = m*2;

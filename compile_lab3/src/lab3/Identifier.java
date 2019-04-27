@@ -3,6 +3,7 @@ package lab3;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 
 public class Identifier {
 	String name;
@@ -26,10 +27,10 @@ public class Identifier {
 	@Override
 	public String toString(){
 		String result = "";
-		result += statuteName;
-		/*for (Entry<String, String> entry : attributes.entrySet()) { 
+		result += statuteName + "\n";
+		for (Entry<String, String> entry : attributes.entrySet()) { 
 			result += entry.getKey() + " " + entry.getValue() + "\n";  
-		}*/
+		}
 		return result;
 	}
 }

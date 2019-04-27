@@ -736,8 +736,96 @@ public class SemParser {
 					q.num = this.num;
 					this.quaternary_list.add(q);
 					this.num ++;
-				} else if(state.equals("r(B->true)")){
-					
+				} else if(state.equals("r(I->true)")){
+					id = new Identifier("I");
+					id.attributes.put("truelist", this.num+"");
+					Quaternary q = new Quaternary("j","_");
+					q.num = this.num;
+					q.truelist = 0;
+					this.quaternary_list.add(q);
+					this.num++;
+				} else if(state.equals("r(I->false)")){
+					id = new Identifier("I");
+					id.attributes.put("falselist", this.num+"");
+					Quaternary q = new Quaternary("j","_");
+					q.num = this.num;
+					q.falselist = 0;
+					this.quaternary_list.add(q);
+					this.num++;
+				} else if(state.equals("r(I->( B ))")){
+					id = new Identifier("I");
+					Identifier i1 = parser_stack.get(parser_stack.size()-2);
+					id.attributes.put("truelist", i1.attributes.get("truelist"));
+					id.attributes.put("falselist", i1.attributes.get("falselist"));
+				} else if(state.equals("r(I->E relop E)")){
+					id = new Identifier("I");
+					id.attributes.put("truelist", num+"");
+					id.attributes.put("falselist", num+1+"");
+					Identifier i1 = parser_stack.get(parser_stack.size()-1);
+					Identifier i2 = parser_stack.get(parser_stack.size()-2);
+					Identifier i3 = parser_stack.get(parser_stack.size()-3);
+					Quaternary q1 = new Quaternary("j"+i2.attributes.get("rel"),i3.attributes.get("addr"),i1.attributes.get("addr"),"_");
+					q1.num = this.num;
+					q1.truelist = 0;
+					this.quaternary_list.add(q1);
+					this.num ++;
+					Quaternary q2 = new Quaternary("j","_");
+					q2.num = this.num;
+					q2.falselist = 0;
+					this.quaternary_list.add(q2);
+					this.num++;
+				} else if(state.equals("r(I->not I)")){
+					id = new Identifier("I");
+					Identifier i1 = parser_stack.get(parser_stack.size()-1);
+					id.attributes.put("truelist", i1.attributes.get("falselist"));
+					id.attributes.put("falselist", i1.attributes.get("truelist"));
+				} else if(state.equals("r(B->B or M H)")){
+					id = new Identifier("B");
+					Identifier i1 = parser_stack.get(parser_stack.size()-1);
+					Identifier i2 = parser_stack.get(parser_stack.size()-2);
+					Identifier i3 = parser_stack.get(parser_stack.size()-4);
+					this.backpatch(i3, "falselist", Integer.parseInt(i2.attributes.get("instr")));
+					int tl = this.merge(i3, i1, "truelist");
+					id.attributes.put("truelist", tl+"");
+					id.attributes.put("falselist", i1.attributes.get("falselist"));
+				} else if(state.equals("r(H->H and M I)")){
+					id = new Identifier("H");
+					Identifier i1 = parser_stack.get(parser_stack.size()-1);
+					Identifier i2 = parser_stack.get(parser_stack.size()-2);
+					Identifier i3 = parser_stack.get(parser_stack.size()-4);
+					System.out.println(i2);
+					this.backpatch(i3, "truelist", Integer.parseInt(i2.attributes.get("instr")));
+					int tl = this.merge(i3, i1, "falselist");
+					id.attributes.put("falselist", tl+"");
+					id.attributes.put("truelist", i1.attributes.get("truelist"));
+				} else if(state.equals("r(H->I)")){
+					id = new Identifier("H");
+					Identifier i1 = parser_stack.peek();
+					id.attributes.put("truelist", i1.attributes.get("truelist"));
+					id.attributes.put("falselist", i1.attributes.get("falselist"));
+				} else if(state.equals("r(B->H)")){
+					id = new Identifier("B");
+					Identifier i1 = parser_stack.peek();
+					id.attributes.put("truelist", i1.attributes.get("truelist"));
+					id.attributes.put("falselist", i1.attributes.get("falselist"));
+				} else if(state.equals("r(relop-><)")){
+					id = new Identifier("relop");
+					id.attributes.put("rel", "<");
+				} else if(state.equals("r(relop-><=)")){
+					id = new Identifier("relop");
+					id.attributes.put("rel", "<=");
+				} else if(state.equals("r(relop->>)")){
+					id = new Identifier("relop");
+					id.attributes.put("rel", ">");
+				} else if(state.equals("r(relop->>=)")){
+					id = new Identifier("relop");
+					id.attributes.put("rel", ">=");
+				} else if(state.equals("r(relop->==)")){
+					id = new Identifier("relop");
+					id.attributes.put("rel", "==");
+				} else if(state.equals("r(relop->!=)")){
+					id = new Identifier("relop");
+					id.attributes.put("rel", "!=");
 				} else{
 					id = new Identifier(state.split("->")[0].substring(2, state.split("->")[0].length()));
 				}
@@ -771,6 +859,9 @@ public class SemParser {
 					this.table_stack.peek().sons.add(new_table);
 					this.table_stack.push(new_table);
 					this.offset_stack.push(0);
+				} else if(state.equals("r(M->ε)")){
+					id = new Identifier("M");
+					id.attributes.put("instr", this.num+"");
 				} else{
 					id = new Identifier(state.split("->")[0].substring(2, state.split("->")[0].length()));
 				}
@@ -787,6 +878,47 @@ public class SemParser {
 				break;
 			}
 		}
+	}
+	
+	public void backpatch(Identifier B, String type, int instr){
+		int line1 = Integer.parseInt(B.attributes.get(type));
+		Quaternary q1 = this.quaternary_list.get(line1);
+		if(type.equals("truelist")){
+			int num1 = q1.truelist;
+			System.out.println(num);
+			while(num1 != 0){
+				q1.des = instr + "";
+				q1 = this.quaternary_list.get(num1);
+				num1 = q1.truelist;
+			}
+			q1.des = instr + "";
+			q1 = this.quaternary_list.get(num1);
+		}
+		if(type.equals("falselist")){
+			int num = q1.falselist;
+			while(num != 0){
+				q1.des = instr + "";
+				q1 = this.quaternary_list.get(num);
+				num = q1.falselist;
+			}
+			q1.des = instr + "";
+			q1 = this.quaternary_list.get(num);
+		}
+	}
+	
+	//第一个对应的行号写到第二个上
+	public int merge(Identifier i1, Identifier i2, String type){
+		int line1 = Integer.parseInt(i1.attributes.get(type));
+		int line2 = Integer.parseInt(i2.attributes.get(type));
+		Quaternary q2 = this.quaternary_list.get(line2);
+		if(type.equals("truelist")){
+			q2.truelist = line1;
+			System.out.println(q2 + "     " + line1);
+		}
+		if(type.equals("falselist")){
+			q2.falselist = line1;
+		}
+		return line2;
 	}
 	
 	public void fillTable(){
@@ -856,6 +988,8 @@ public class SemParser {
 		return result;
 	}
 	
+	
+	
 	public static void main(String args[]){
 		SemParser parser = new SemParser();
 		parser.readFromFile("input_wbh.txt");
@@ -885,17 +1019,17 @@ public class SemParser {
 		
 		parser.parser("test1.txt");
 		
-		for (Map.Entry<SymbolTable, Integer> entry : parser.map_table.entrySet()) { 
+		/*for (Map.Entry<SymbolTable, Integer> entry : parser.map_table.entrySet()) { 
 			System.out.println(entry.getKey());
 			System.out.println(entry.getValue());
 			if(entry.getKey().father!=null)
 				System.out.println(entry.getKey().father.name);
-		}
+		}*/
 		//System.out.println(parser.table);
 		/*for(int i=0;i<parser.output.size();i++){
 			System.out.println(parser.output.get(i));
-		}
-		for(int i=0;i<parser.error.size();i++){
+		}*/
+		/*for(int i=0;i<parser.error.size();i++){
 			System.out.println(parser.error.get(i));
 		}*/
 		for(int i=0;i<parser.quaternary_list.size();i++){

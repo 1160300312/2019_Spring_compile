@@ -6,6 +6,8 @@ public class Quaternary {
 	String value1;
 	String value2;
 	String des;
+	int truelist;
+	int falselist;
 	
 	public Quaternary(String action, String value1, String value2, String des){
 		this.action = action;
@@ -28,7 +30,7 @@ public class Quaternary {
 	@Override
 	public String toString(){
 		String result = "";
-		result += "(" + action + ",";
+		result += num + " (" + action + ",";
 		if(this.value1!=null){
 			result += value1 + ",";
 		} else{
