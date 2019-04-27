@@ -36,6 +36,7 @@ public class SemParser {
 	Stack<Integer> offset_stack = new Stack<Integer>();
 	Map<SymbolTable, Integer> map_table = new HashMap<SymbolTable, Integer>();
 	List<Quaternary> quaternary_list = new ArrayList<Quaternary>();
+	List<String> proc_list = new ArrayList<String>();
 	int temp = 0;
 	int num = 0;	
 	
@@ -530,10 +531,22 @@ public class SemParser {
 					id.attributes.put("width", "4");
 				} else if(state.equals("r(D->proc X id ( M ) A2 { P })")){
 					id = new Identifier("D");
-					this.map_table.put(this.table_stack.peek(),this.offset_stack.peek());
-					this.table_stack.peek().name = parser_stack.get(parser_stack.size()-8).name;
-					this.table_stack.pop();
-					this.offset_stack.pop();
+					String name = parser_stack.get(parser_stack.size()-8).name;
+					int flag = 0;
+					for(int i=0;i<this.proc_list.size();i++){
+						if(this.proc_list.get(i).equals(name)){
+							flag = 1;
+							break;
+						}
+					}
+					if(flag == 0){
+						this.map_table.put(this.table_stack.peek(),this.offset_stack.peek());
+						this.table_stack.peek().name = name;
+						this.table_stack.pop();
+						this.offset_stack.pop();
+					} else{
+						this.error.add("error at line " + (this.line_index.get(0)) +", 函数名重复声明");
+					}
 				} /*else if(state.equals("r(M->X id)")){
 					id = new Identifier("M");
 					Identifier i1 = parser_stack.get(parser_stack.size()-1);
@@ -578,7 +591,7 @@ public class SemParser {
 						currentTable = currentTable.father;
 					}
 					if(flag == 0){
-						System.out.println("error");
+						this.error.add("error at line " + (this.line_index.get(0) - 1) +", 重复声明变量");
 						//TODO 错误处理
 					} else {
 						this.offset_stack.set(this.offset_stack.size()-1, this.offset_stack.peek() + Integer.parseInt(i2.attributes.get("width")));
@@ -590,10 +603,14 @@ public class SemParser {
 					Identifier i1 = parser_stack.peek();
 					int flag = 1;
 					SymbolTable currentTable = this.table_stack.peek();
+					String type = null;
+					Symbol ss = null;
 					while(currentTable!=null){
 						for(int index=0;index<currentTable.table.size();index++){
 							if(currentTable.table.get(index).name.equals(i1.name)){
 								flag = 0;
+								type = currentTable.table.get(index).type;
+								ss = currentTable.table.get(index);
 								break;
 							}
 						}
@@ -603,23 +620,37 @@ public class SemParser {
 						currentTable = currentTable.father;
 					}
 					if(flag == 1){
-						System.out.println("error");
+//						System.out.println("error");
+						System.out.println(i1.name);
+						this.error.add("error at line " + this.line_index.get(0) +", 引用变量前未声明");
 						//TODO 错误处理
-					} else{
-						id.attributes.put("addr", i1.name);
+					} else{ 	
+						if(ss.type.startsWith("[")){
+							this.error.add("error at line " + this.line_index.get(0) +", 使用数组变量做运算");
+						} else{
+							id.attributes.put("addr", i1.name);
+							id.attributes.put("type", type);
+						}
 					}
 				} else if(state.equals("r(F->digit)")){
 					id = new Identifier("F");
 					Identifier i1 = parser_stack.peek();
 					id.attributes.put("addr", i1.name);
+					id.attributes.put("type", "digit");
 				} else if(state.equals("r(F->( E ))")){
 					id = new Identifier("F");
 					Identifier i1 = parser_stack.get(parser_stack.size()-2);
+					id.attributes.put("addr", i1.attributes.get("addr"));
+					id.attributes.put("type", i1.attributes.get("type"));
+				} else if(state.equals("r(F->L)")){
+					id = new Identifier("F");
+					Identifier i1 = parser_stack.get(parser_stack.size()-1);
 					id.attributes.put("addr", i1.attributes.get("addr"));
 				} else if(state.equals("r(G->F)")){
 					id = new Identifier("G");
 					Identifier i1 = parser_stack.peek();
 					id.attributes.put("addr", i1.attributes.get("addr"));
+					id.attributes.put("type", i1.attributes.get("type"));
 				} else if(state.equals("r(G->G * F)")){
 					id = new Identifier("G");
 					id.attributes.put("addr", this.newTemp());
@@ -633,15 +664,27 @@ public class SemParser {
 					id = new Identifier("E");
 					Identifier i1 = parser_stack.peek();
 					id.attributes.put("addr", i1.attributes.get("addr"));
+					id.attributes.put("type", i1.attributes.get("type"));
 				} else if(state.equals("r(E->E + G)")){
 					id = new Identifier("E");
-					id.attributes.put("addr", this.newTemp());
 					Identifier i1 = parser_stack.peek();
 					Identifier i2 = parser_stack.get(parser_stack.size()-3);
-					Quaternary q = new Quaternary("+",i2.attributes.get("addr"),i1.attributes.get("addr"),id.attributes.get("addr"));
-					q.num = this.num;
-					num ++;
-					this.quaternary_list.add(q);
+					if(!(i1.attributes.get("type")==null || i2.attributes.get("type") == null)){
+						id.attributes.put("type", this.maxType(i1.attributes.get("type"), i2.attributes.get("type")));
+						String a1 = this.widenAndCheck(i1.attributes.get("addr"), i1.attributes.get("type"), id.attributes.get("type"));
+						String a2 = this.widenAndCheck(i2.attributes.get("addr"), i2.attributes.get("type"), id.attributes.get("type"));
+						if(a1.equals("digit")){
+							a1 = i1.attributes.get("addr");
+						}
+						if(a2.equals("digit")){
+							a2 = i2.attributes.get("addr");
+						}
+						id.attributes.put("addr", this.newTemp());
+						Quaternary q = new Quaternary("+",a1,a2,id.attributes.get("addr"));
+						q.num = this.num;
+						num ++;
+						this.quaternary_list.add(q);
+					}
 				} else if(state.equals("r(S->id = E ;)")){
 					id = new Identifier("S");
 					Identifier i1 = parser_stack.get(parser_stack.size()-2);
@@ -662,12 +705,15 @@ public class SemParser {
 					}
 					if(flag == 1){
 						System.out.println("error");
+						this.error.add("error at line " + (this.line_index.get(0) - 1) +", 引用变量前未声明");
 						//TODO 错误处理  未定义值
 					} else{
-						Quaternary q = new Quaternary("=",i1.attributes.get("addr"),i2.name);
-						this.quaternary_list.add(q);
-						q.num = this.num;
-						this.num ++;
+						if(!(i1.attributes.get("addr")==null)){
+							Quaternary q = new Quaternary("=",i1.attributes.get("addr"),i2.name);
+							this.quaternary_list.add(q);
+							q.num = this.num;
+							this.num ++;
+						}
 					}
 				} else if(state.equals("r(L->id [ E ])")){
 					id = new Identifier("L");
@@ -690,18 +736,22 @@ public class SemParser {
 						currentTable = currentTable.father;
 					}
 					if(flag == 1){
-						System.out.println("error");
+						this.error.add("error at line " + this.line_index.get(0) +", 引用变量前未声明");
 						//TODO 错误处理  未定义值
 					} else{
-						id.attributes.put("addr", this.newTemp());
-						id.attributes.put("id", s1.name);
-						id.attributes.put("type", s1.type);
-						id.attributes.put("dimension", 1+"");
-						int dim = this.getDimension(id.attributes.get("type")).get(0);
-						Quaternary q = new Quaternary("*",i1.attributes.get("addr"),4*dim + "",id.attributes.get("addr"));
-						q.num = this.num;
-						this.quaternary_list.add(q);
-						this.num ++;
+						if(!s1.type.startsWith("[")){
+							this.error.add("error at line " + this.line_index.get(0) +", 对非数组变量进行数组访问操作");
+						} else{
+							id.attributes.put("addr", this.newTemp());
+							id.attributes.put("id", s1.name);
+							id.attributes.put("type", s1.type);
+							id.attributes.put("dimension", 1+"");
+							int dim = this.getDimension(id.attributes.get("type")).get(0);
+							Quaternary q = new Quaternary("*",i1.attributes.get("addr"),4*dim + "",id.attributes.get("addr"));
+							q.num = this.num;
+							this.quaternary_list.add(q);
+							this.num ++;
+						}
 					}
 				} else if(state.equals("r(L->L [ E ])")){
 					id = new Identifier("L");
@@ -793,7 +843,6 @@ public class SemParser {
 					Identifier i1 = parser_stack.get(parser_stack.size()-1);
 					Identifier i2 = parser_stack.get(parser_stack.size()-2);
 					Identifier i3 = parser_stack.get(parser_stack.size()-4);
-					System.out.println(i2);
 					this.backpatch(i3, "truelist", Integer.parseInt(i2.attributes.get("instr")));
 					int tl = this.merge(i3, i1, "falselist");
 					id.attributes.put("falselist", tl+"");
@@ -826,6 +875,36 @@ public class SemParser {
 				} else if(state.equals("r(relop->!=)")){
 					id = new Identifier("relop");
 					id.attributes.put("rel", "!=");
+				} else if(state.equals("r(S->if ( B ) then A3 S A4 else A3 S A3)")){
+					id = new Identifier("S");
+					Identifier i1 = parser_stack.get(parser_stack.size()-2); //S
+					Identifier i2 = parser_stack.get(parser_stack.size()-3); //A3
+					Identifier i4 = parser_stack.get(parser_stack.size()-5); //A4
+					Identifier i5 = parser_stack.get(parser_stack.size()-6); //S
+					Identifier i6 = parser_stack.get(parser_stack.size()-7); //A3
+					Identifier i7 = parser_stack.get(parser_stack.size()-10); //B
+					Identifier i8 = parser_stack.get(parser_stack.size()-1);
+					this.backpatch(i7, "truelist", Integer.parseInt(i6.attributes.get("instr")));
+					this.backpatch(i7, "falselist", Integer.parseInt(i2.attributes.get("instr")));
+					int temp = this.merge(i5, i4, "nextlist");
+					int nl = this.merge(temp, i1, "nextlist");
+					id.attributes.put("nextlist", nl+"");
+					this.backpatch(id, "nextlist", Integer.parseInt(i8.attributes.get("instr")));
+				} else if(state.equals("r(S->while A3 ( B ) do A3 S A3)")){
+					id = new Identifier("S");
+					Identifier i1 = parser_stack.get(parser_stack.size()-1);//A3
+					Identifier i2 = parser_stack.get(parser_stack.size()-2);//S
+					Identifier i3 = parser_stack.get(parser_stack.size()-3);//A4
+					Identifier i4 = parser_stack.get(parser_stack.size()-6);//B
+					Identifier i5 = parser_stack.get(parser_stack.size()-8);//A3
+					this.backpatch(i2, "nextlist", Integer.parseInt(i5.attributes.get("instr")));
+					this.backpatch(i4, "truelist", Integer.parseInt(i3.attributes.get("instr")));
+					id.attributes.put("nextlist", i4.attributes.get("falselist"));
+					Quaternary q = new Quaternary("j",i5.attributes.get("instr"));
+					q.num = this.num;
+					this.num++;
+					this.quaternary_list.add(q);
+					this.backpatch(id, "nextlist", Integer.parseInt(i1.attributes.get("instr"))+1);
 				} else{
 					id = new Identifier(state.split("->")[0].substring(2, state.split("->")[0].length()));
 				}
@@ -862,6 +941,17 @@ public class SemParser {
 				} else if(state.equals("r(M->ε)")){
 					id = new Identifier("M");
 					id.attributes.put("instr", this.num+"");
+				} else if(state.equals("r(A3->ε)")){/////TODO
+					id = new Identifier("A3");
+					id.attributes.put("instr", this.num+"");
+				} else if(state.equals("r(A4->ε)")){
+					id = new Identifier("A4");
+					id.attributes.put("nextlist", this.num+"");
+					Quaternary q = new Quaternary("j","_");
+					q.num = this.num;
+					q.nextlist = 0;
+					this.num++;
+					this.quaternary_list.add(q);			
 				} else{
 					id = new Identifier(state.split("->")[0].substring(2, state.split("->")[0].length()));
 				}
@@ -880,12 +970,52 @@ public class SemParser {
 		}
 	}
 	
+	public String widenAndCheck(String a, String t, String w){
+		if((!t.equals("int")) && (!t.equals("float")) || (!w.equals("int")) && (!w.equals("float"))){
+			return "digit";
+		}
+		if(t.equals(w)){
+			return a;
+		} else if(t.equals("int") && w.equals("float")){
+			String temp = this.newTemp();
+			Quaternary q = new Quaternary("=","(float)" + a,temp);
+			q.num = this.num;
+			this.num++;
+			this.quaternary_list.add(q);
+			return temp;
+		} else{
+			return "error";
+		}
+	}
+	
+	public String maxType(String a, String b){
+		if(a.equals("float") || b.equals("float")){
+			return "float";
+		}
+		if(a.equals("int") && b.equals("int")){
+			return "int";
+		}
+		return "digit";
+	}
+	
 	public void backpatch(Identifier B, String type, int instr){
+		if(B.attributes.get(type) == null){
+			return;
+		}
 		int line1 = Integer.parseInt(B.attributes.get(type));
 		Quaternary q1 = this.quaternary_list.get(line1);
+		if(type.equals("nextlist")){
+			int num1 = q1.nextlist;
+			while(num1 != 0){
+				q1.des = instr + "";
+				q1 = this.quaternary_list.get(num1);
+				num1 = q1.nextlist;
+			}
+			q1.des = instr + "";
+			q1 = this.quaternary_list.get(num1);
+		}
 		if(type.equals("truelist")){
 			int num1 = q1.truelist;
-			System.out.println(num);
 			while(num1 != 0){
 				q1.des = instr + "";
 				q1 = this.quaternary_list.get(num1);
@@ -908,15 +1038,38 @@ public class SemParser {
 	
 	//第一个对应的行号写到第二个上
 	public int merge(Identifier i1, Identifier i2, String type){
+		int line2 = Integer.parseInt(i2.attributes.get(type));
+		if(i1.attributes.get(type) == null){
+			return line2;
+		}
 		int line1 = Integer.parseInt(i1.attributes.get(type));
+		Quaternary q2 = this.quaternary_list.get(line2);
+		if(type.equals("truelist")){
+			q2.truelist = line1;
+		}
+		if(type.equals("falselist")){
+			q2.falselist = line1;
+		}
+		if(type.equals("nextlist")){
+			q2.nextlist = line1;
+		}
+		return line2;
+	}
+	
+	public int merge(int line1, Identifier i2, String type){
+		if(i2.attributes.get(type) == null){
+			return line1;
+		}
 		int line2 = Integer.parseInt(i2.attributes.get(type));
 		Quaternary q2 = this.quaternary_list.get(line2);
 		if(type.equals("truelist")){
 			q2.truelist = line1;
-			System.out.println(q2 + "     " + line1);
 		}
 		if(type.equals("falselist")){
 			q2.falselist = line1;
+		}
+		if(type.equals("nextlist")){
+			q2.nextlist = line1;
 		}
 		return line2;
 	}
@@ -1019,19 +1172,16 @@ public class SemParser {
 		
 		parser.parser("test1.txt");
 		
-		/*for (Map.Entry<SymbolTable, Integer> entry : parser.map_table.entrySet()) { 
+		for (Map.Entry<SymbolTable, Integer> entry : parser.map_table.entrySet()) { 
 			System.out.println(entry.getKey());
-			System.out.println(entry.getValue());
-			if(entry.getKey().father!=null)
-				System.out.println(entry.getKey().father.name);
-		}*/
+		}
 		//System.out.println(parser.table);
 		/*for(int i=0;i<parser.output.size();i++){
 			System.out.println(parser.output.get(i));
 		}*/
-		/*for(int i=0;i<parser.error.size();i++){
+		for(int i=0;i<parser.error.size();i++){
 			System.out.println(parser.error.get(i));
-		}*/
+		}
 		for(int i=0;i<parser.quaternary_list.size();i++){
 			System.out.println(parser.quaternary_list.get(i));
 		}

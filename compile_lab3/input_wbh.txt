@@ -8,13 +8,13 @@ T->X A1 C
 A1->ε
 X->int|float
 C->[ digit ] C|ε
-S->id = E ;|if ( B ) then A3 S A4 else A3 S|while ( B ) do S|call id ( Elist ) ;|return E ;|L = E ;
+S->id = E ;|if ( B ) then A3 S A4 else A3 S A3|while A3 ( B ) do A3 S A3|call id ( Elist ) ;|return E ;|L = E ;
 A3->ε
 A4->ε
 L->L [ E ]|id [ E ]
 E->E + G|G
 G->G * F|F
-F->( E )|digit|id
+F->( E )|digit|id|L
 B->B or M H|H
 H->H and M I|I
 M->ε

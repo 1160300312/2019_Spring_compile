@@ -8,6 +8,7 @@ public class Quaternary {
 	String des;
 	int truelist;
 	int falselist;
+	int nextlist;
 	
 	public Quaternary(String action, String value1, String value2, String des){
 		this.action = action;

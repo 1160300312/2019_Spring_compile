@@ -20,10 +20,15 @@ public class SymbolTable {
 	public String toString(){
 		String result = "";
 		result += name + "\n";
-		for(int i=0;i<table.size()-1;i++){
+		for(int i=0;i<table.size();i++){
 			result += table.get(i) + "\n";
 		}
-		result += table.get(table.size()-1);
+		for(int i=0;i<this.sons.size();i++){
+			result += "(" + sons.get(i).name + ")\n";
+		}
+		if(father!=null){
+			result += "father:" + father.name + "\n";
+		}
 		return result;
 	}
 }

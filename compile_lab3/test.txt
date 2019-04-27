@@ -3,6 +3,8 @@ int b; /*this is a comment*/
 int [5][3] c;
 float [3] b;
 b[2] = 0;
+int x;
+int y;
 
 if(m<8)	
 then m = m +1;  
@@ -13,8 +15,9 @@ record stack{
   float value; 
 }
 
-proc int increase(int x, int y){
+proc int increase(int x){
    int y;
+   float z;
    y = x + 1;
    return y;
 }

@@ -3,19 +3,32 @@ int b;
 float c;
 int m;
 int x;
+int x;
 int y;
 
-c = c * b;
+b[5] = 3;
 a[2][3][4] = 5;
-c = c + 5;
 
-proc int increase(int x, int y){
-   int y;
-   float x;
-   int z;
-   return y;
-}
+b = b + a;
 
 if(x<100 or x>200 and x!=y)	
 then m = m +1;  
 else m = m*2;
+
+while(m>2)
+do 
+b = m + 1;
+
+c = c + b;
+
+proc int increase(int x, int y){
+   int y;
+   float t;
+   int z;
+   t = t + z;
+   return t;
+}
+
+float t;
+t = tt + y;
+
